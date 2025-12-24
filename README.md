@@ -87,6 +87,28 @@ Check out a few resources that may come in handy when working with NestJS:
 
 Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
 
+## 라이브러리
+@nestjs/mongoose
+NestJS에서 MongoDB를 쉽게 연동할 수 있게 해주는 공식 모듈
+
+mongoose
+MongoDB를 Node.js에서 객체지향적으로 다루는 ODM(Object Data Modeling) 라이브러리
+
+axios
+외부 API 호출 등 HTTP 요청을 보낼 때 사용하는 Promise 기반 HTTP 클라이언트
+
+bcrypt
+비밀번호 암호화(해싱) 라이브러리
+
+class-transformer (nest 공식문서 추천)
+요청 데이터(JSON 등)를 DTO 클래스 인스턴스로 변환해주는 라이브러리
+
+class-validator (nest 공식문서 추천)
+DTO(데이터 전송 객체)에 유효성 검사 데코레이터를 붙여 검증할 수 있게 해주는 라이브러리
+
+jsonwebtoken
+JWT 토큰 생성 및 검증 라이브러리 (로그인/인증 구현에 사용)
+
 ## Stay in touch
 
 - Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
