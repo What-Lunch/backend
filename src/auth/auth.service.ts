@@ -24,17 +24,11 @@ export class AuthService {
   ) {}
 
   async signup(dto: RegisterDto) {
-    const existingUser = await this.usersService.findByEmail(dto.email);
-
-    if (existingUser) {
-      throw new ConflictException('Email already in use');
-    }
-
     let hashedPassword: string;
     try {
       hashedPassword = await bcrypt.hash(dto.password, 10);
     } catch {
-      throw new InternalServerErrorException('Error hashing password');
+      throw new InternalServerErrorException('비밀번호 해싱 중 오류가 발생했습니다');
     }
 
     try {
@@ -44,6 +38,7 @@ export class AuthService {
         passwordHash: hashedPassword,
       });
 
+      // 필요 시 분리 : 현재 회원가입이라 분리하면 파일이 더 많아짐
       const userResponse = {
         _id: newUser._id.toString(),
         nickname: newUser.nickname,

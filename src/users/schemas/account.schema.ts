@@ -3,7 +3,7 @@ import { Document, Types } from 'mongoose';
 import { Provider } from 'src/common/enum/provider.enum';
 
 @Schema({ timestamps: true })
-export class Account extends Document {
+export class Account {
   @Prop({ maxlength: 100 })
   accountName?: string;
 

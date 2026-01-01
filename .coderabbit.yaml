@@ -1,7 +1,3 @@
-issue_enrichment:
-  auto_enrich:
-    enabled: true
-
 review:
   tone: concise
   instructions: |

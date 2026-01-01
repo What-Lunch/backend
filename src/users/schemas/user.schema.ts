@@ -15,7 +15,7 @@ export class User {
   nickname!: string;
 
   @Prop()
-  profile!: string;
+  profile?: string;
 
   createdAt!: Date;
   updatedAt!: Date;
