@@ -14,7 +14,7 @@ export class Account {
   password?: string;
 
   @Prop({ enum: Provider })
-  provider?: Provider;
+  provider: Provider;
 
   @Prop()
   providerId?: string | null;
@@ -22,5 +22,7 @@ export class Account {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   user: Types.ObjectId;
 }
+
+export type AccountDocument = Account & Document;
 
 export const AccountSchema = SchemaFactory.createForClass(Account);
