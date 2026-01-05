@@ -1,4 +1,10 @@
-import { Injectable, UnauthorizedException, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ServiceUnavailableException,
+  ConflictException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 import * as crypto from 'crypto';
@@ -6,8 +12,8 @@ import * as bcrypt from 'bcrypt';
 
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
-import { Token } from './schemas/token.schema';
-import type { TokenDocument } from './schemas/token.schema';
+import { RegisterDto } from './dto/signup.dto';
+import { Token, TokenDocument } from './schemas/token.schema';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +22,45 @@ export class AuthService {
     @InjectModel(Token.name)
     private readonly tokenModel: Model<TokenDocument>,
   ) {}
+
+  async signup(dto: RegisterDto) {
+    let hashedPassword: string;
+    try {
+      hashedPassword = await bcrypt.hash(dto.password, 10);
+    } catch {
+      throw new InternalServerErrorException('비밀번호 해싱 중 오류가 발생했습니다');
+    }
+
+    try {
+      const newUser = await this.usersService.create({
+        nickname: dto.nickname,
+        email: dto.email,
+        passwordHash: hashedPassword,
+      });
+
+      // 필요 시 분리 : 현재 회원가입이라 분리하면 파일이 더 많아짐
+      const userResponse = {
+        _id: newUser._id.toString(),
+        nickname: newUser.nickname,
+        email: newUser.email,
+        profile: newUser.profile,
+        createdAt: newUser.createdAt,
+        updatedAt: newUser.updatedAt,
+      };
+
+      return userResponse;
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code?: number }).code === 11000
+      ) {
+        throw new ConflictException('이메일이 이미 등록되었습니다');
+      }
+      throw new InternalServerErrorException('회원가입 중 오류가 발생했습니다');
+    }
+  }
 
   async login(dto: LoginDto) {
     const user = await this.usersService.findByEmail(dto.email);

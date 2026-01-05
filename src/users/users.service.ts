@@ -12,4 +12,9 @@ export class UsersService {
     const normalized = email.trim().toLowerCase();
     return this.userModel.findOne({ email: normalized }).exec();
   }
+
+  async create(userData: { nickname: string; email: string; passwordHash: string }) {
+    const user = new this.userModel(userData);
+    return user.save();
+  }
 }
