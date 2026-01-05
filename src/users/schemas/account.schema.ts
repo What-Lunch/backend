@@ -7,11 +7,8 @@ export class Account {
   @Prop({ maxlength: 100 })
   accountName?: string;
 
-  @Prop({ required: true, unique: true, maxlength: 255 })
+  @Prop({ required: true, maxlength: 255 })
   email: string;
-
-  @Prop()
-  password?: string;
 
   @Prop({ enum: Provider })
   provider: Provider;
