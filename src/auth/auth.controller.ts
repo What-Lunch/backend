@@ -7,7 +7,9 @@ import {
   Get,
   Headers,
   UnauthorizedException,
+  Header,
 } from '@nestjs/common';
+
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/signup.dto';
@@ -28,7 +30,11 @@ export class AuthController {
     return this.authService.signup(dto);
   }
 
+  // 사용자 정보 엔드포인트
   @Get('me')
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   async me(@Headers('authorization') authHeader?: string) {
     if (!authHeader) {
       throw new UnauthorizedException('Authorization 헤더가 없습니다');
