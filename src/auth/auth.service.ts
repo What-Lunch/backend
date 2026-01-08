@@ -105,12 +105,8 @@ export class AuthService {
     }
 
     return {
-      _id: user._id.toString(),
       email: user.email,
       nickname: user.nickname,
-      profile: user.profile,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
     };
   }
 }
