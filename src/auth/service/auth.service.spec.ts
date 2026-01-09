@@ -3,8 +3,8 @@ import { getModelToken } from '@nestjs/mongoose';
 import { ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 
 import { AuthService } from './auth.service';
-import { UsersService } from '../users/users.service';
-import { Token } from './schemas/token.schema';
+import { UsersService } from '../../users/users.service';
+import { Token } from '../schemas/token.schema';
 
 const compareMock = jest.fn<Promise<boolean>, [string, string]>();
 

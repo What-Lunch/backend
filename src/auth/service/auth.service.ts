@@ -10,10 +10,10 @@ import type { Model } from 'mongoose';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
 
-import { UsersService } from '../users/users.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/signup.dto';
-import { Token, TokenDocument } from './schemas/token.schema';
+import { UsersService } from '../../users/users.service';
+import { LoginDto } from '../dto/login.dto';
+import { RegisterDto } from '../dto/signup.dto';
+import { Token, TokenDocument } from '../schemas/token.schema';
 
 @Injectable()
 export class AuthService {

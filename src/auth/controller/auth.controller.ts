@@ -10,9 +10,9 @@ import {
   Header,
 } from '@nestjs/common';
 
-import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/signup.dto';
+import { AuthService } from '../service/auth.service';
+import { LoginDto } from '../dto/login.dto';
+import { RegisterDto } from '../dto/signup.dto';
 
 @Controller('auth')
 export class AuthController {
