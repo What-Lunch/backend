@@ -43,7 +43,7 @@ export class AuthService {
         _id: newUser._id.toString(),
         nickname: newUser.nickname,
         email: newUser.email,
-        profile: newUser.profile,
+        profileImage: newUser.profileImage,
         createdAt: newUser.createdAt,
         updatedAt: newUser.updatedAt,
       };
@@ -107,6 +107,7 @@ export class AuthService {
     return {
       email: user.email,
       nickname: user.nickname,
+      profileImage: user.profileImage,
     };
   }
 }
