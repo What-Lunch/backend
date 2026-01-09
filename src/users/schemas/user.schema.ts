@@ -14,8 +14,8 @@ export class User {
   @Prop({ required: true, trim: true })
   nickname!: string;
 
-  @Prop()
-  profile?: string;
+  @Prop({ type: String, default: null })
+  profileImage!: string | null;
 
   createdAt!: Date;
   updatedAt!: Date;

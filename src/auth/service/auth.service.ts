@@ -10,10 +10,10 @@ import type { Model } from 'mongoose';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
 
-import { UsersService } from '../users/users.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/signup.dto';
-import { Token, TokenDocument } from './schemas/token.schema';
+import { UsersService } from '../../users/users.service';
+import { LoginDto } from '../dto/login.dto';
+import { RegisterDto } from '../dto/signup.dto';
+import { Token, TokenDocument } from '../schemas/token.schema';
 
 @Injectable()
 export class AuthService {
@@ -43,7 +43,7 @@ export class AuthService {
         _id: newUser._id.toString(),
         nickname: newUser.nickname,
         email: newUser.email,
-        profile: newUser.profile,
+        profileImage: newUser.profileImage,
         createdAt: newUser.createdAt,
         updatedAt: newUser.updatedAt,
       };
@@ -88,5 +88,26 @@ export class AuthService {
     }
 
     return { accessToken, expiresAt };
+  }
+
+  // 사용자 정보 가져오기
+  async getMe(accessToken: string) {
+    const token = await this.tokenModel.findOne({ value: accessToken });
+
+    if (!token || token.expiresAt < new Date()) {
+      throw new UnauthorizedException('토큰이 유효하지 않습니다');
+    }
+
+    const user = await this.usersService.findById(token.userId);
+
+    if (!user) {
+      throw new UnauthorizedException('사용자를 찾을 수 없습니다');
+    }
+
+    return {
+      email: user.email,
+      nickname: user.nickname,
+      profileImage: user.profileImage,
+    };
   }
 }
