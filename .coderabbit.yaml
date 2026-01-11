@@ -1,6 +1,7 @@
-language: 'ko'
+language: 'ko-KR'
 reviews:
   profile: 'concise'
+  review_status: true
   auto_review:
     enabled: true
   instructions: |
