@@ -1,9 +1,9 @@
-issue_enrichment:
-  auto_enrich:
+language: 'ko-KR'
+reviews:
+  profile: 'concise'
+  review_status: true
+  auto_review:
     enabled: true
-
-review:
-  tone: concise
   instructions: |
     모든 코드 리뷰는 반드시 한국어로 작성해주세요.
     불필요한 영어 설명은 피하고, 한국어 기술 용어를 우선 사용하세요.
