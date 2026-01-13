@@ -14,7 +14,16 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: process.env.BASE_URL,
+    origin: (origin, callback) => {
+      const allowedOrigins = ['http://localhost:3000', 'https://whatlunch.vercel.app'];
+
+      // Vercel Preview 도메인 패턴 허용
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   });
 
