@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 
 import { Menu } from '../schemas/menu.schemas';
 import { RouletteMenuDto } from '../dto/roulette-menu.dto';
+import { RouletteMenuResponseDto } from '../dto/roulette-menu.dto';
 import { MenuCategory } from '../enum/menu-category.enum';
 
 interface MenuFilter {
@@ -19,7 +20,7 @@ export class MenusService {
     private readonly menuModel: Model<Menu>,
   ) {}
 
-  async getRouletteMenu(dto: RouletteMenuDto) {
+  async getRouletteMenu(dto: RouletteMenuDto): Promise<RouletteMenuResponseDto[]> {
     const { category, context, limit = 1 } = dto;
 
     const filter: MenuFilter = {};
@@ -36,7 +37,7 @@ export class MenusService {
       filter.contexts = context;
     }
 
-    const menus = await this.menuModel.aggregate([
+    const menus = await this.menuModel.aggregate<RouletteMenuResponseDto>([
       { $match: filter },
       { $sample: { size: limit } },
       {
