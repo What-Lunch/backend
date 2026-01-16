@@ -13,6 +13,7 @@ import * as bcrypt from 'bcrypt';
 import { UsersService } from '../../users/users.service';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/signup.dto';
+import { UpdateMeDto } from '../dto/update.dto';
 import { Token, TokenDocument } from '../schemas/token.schema';
 
 @Injectable()
@@ -23,6 +24,7 @@ export class AuthService {
     private readonly tokenModel: Model<TokenDocument>,
   ) {}
 
+  // 회원가입
   async signup(dto: RegisterDto) {
     let hashedPassword: string;
     try {
@@ -38,17 +40,11 @@ export class AuthService {
         passwordHash: hashedPassword,
       });
 
-      // 필요 시 분리 : 현재 회원가입이라 분리하면 파일이 더 많아짐
-      const userResponse = {
-        _id: newUser._id.toString(),
-        nickname: newUser.nickname,
+      return {
         email: newUser.email,
+        nickname: newUser.nickname,
         profileImage: newUser.profileImage,
-        createdAt: newUser.createdAt,
-        updatedAt: newUser.updatedAt,
       };
-
-      return userResponse;
     } catch (error: unknown) {
       if (
         typeof error === 'object' &&
@@ -62,6 +58,7 @@ export class AuthService {
     }
   }
 
+  // 로그인
   async login(dto: LoginDto) {
     const user = await this.usersService.findByEmail(dto.email);
 
@@ -90,7 +87,7 @@ export class AuthService {
     return { accessToken, expiresAt };
   }
 
-  // 사용자 정보 가져오기
+  // 내 정보 조회
   async getMe(accessToken: string) {
     const token = await this.tokenModel.findOne({ value: accessToken });
 
@@ -108,6 +105,55 @@ export class AuthService {
       email: user.email,
       nickname: user.nickname,
       profileImage: user.profileImage,
+    };
+  }
+
+  // 내 정보 수정
+  async updateMe(accessToken: string, dto: UpdateMeDto) {
+    // 토큰 검증
+    const token = await this.tokenModel.findOne({ value: accessToken });
+
+    if (!token || token.expiresAt < new Date()) {
+      throw new UnauthorizedException('토큰이 유효하지 않습니다');
+    }
+
+    const user = await this.usersService.findById(token.userId);
+
+    if (!user) {
+      throw new UnauthorizedException('사용자를 찾을 수 없습니다');
+    }
+
+    const updateData: Record<string, any> = {};
+
+    if (dto.nickname) {
+      updateData.nickname = dto.nickname;
+    }
+
+    if (dto.password) {
+      updateData.passwordHash = await bcrypt.hash(dto.password, 10);
+    }
+
+    // 변경 사항 없으면 그대로 반환
+    if (Object.keys(updateData).length === 0) {
+      return {
+        email: user.email,
+        nickname: user.nickname,
+        profileImage: user.profileImage,
+      };
+    }
+
+    // 유저 정보 업데이트
+    const updatedUser = await this.usersService.updateById(user._id, updateData);
+
+    // 비밀번호 변경 시 모든 토큰 무효화
+    if (dto.password) {
+      await this.tokenModel.deleteMany({ userId: user._id });
+    }
+
+    return {
+      email: updatedUser.email,
+      nickname: updatedUser.nickname,
+      profileImage: updatedUser.profileImage,
     };
   }
 }
