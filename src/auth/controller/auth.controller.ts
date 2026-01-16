@@ -55,6 +55,9 @@ export class AuthController {
 
   // 내 정보 수정 (닉네임 / 비밀번호 / 둘 다)
   @Patch('me')
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   async updateMe(@Headers('authorization') authHeader: string, @Body() dto: UpdateMeDto) {
     if (!authHeader) {
       throw new UnauthorizedException('Authorization 헤더가 없습니다');

@@ -4,6 +4,12 @@ import { Model, Types } from 'mongoose';
 
 import { User, UserDocument } from './schemas/user.schema';
 
+export type UserUpdateData = {
+  nickname?: string;
+  passwordHash?: string;
+  profileImage?: string;
+};
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -29,7 +35,7 @@ export class UsersService {
   }
 
   // 유저 정보 업데이트
-  async updateById(userId: Types.ObjectId | string, updateData: Partial<User>) {
+  async updateById(userId: Types.ObjectId | string, updateData: UserUpdateData) {
     const updatedUser = await this.userModel.findByIdAndUpdate(
       userId,
       { $set: updateData },

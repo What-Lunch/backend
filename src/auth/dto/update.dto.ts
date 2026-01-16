@@ -1,4 +1,5 @@
-import { IsOptional, IsString, MinLength } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
+import { IsPassword } from 'src/common/validators/password.validator';
 
 export class UpdateMeDto {
   @IsOptional()
@@ -6,7 +7,6 @@ export class UpdateMeDto {
   nickname?: string;
 
   @IsOptional()
-  @IsString()
-  @MinLength(8)
+  @IsPassword()
   password?: string;
 }
