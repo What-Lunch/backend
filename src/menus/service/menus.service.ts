@@ -3,14 +3,15 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
 import { Menu } from '../schemas/menu.schemas';
-import { RouletteMenuDto } from '../dto/roulette-menu.dto';
-import { RouletteMenuResponseDto } from '../dto/roulette-menu.dto';
+import { RouletteMenuDto, RouletteMenuResponseDto } from '../dto/roulette-menu.dto';
 import { MenuCategory } from '../enum/menu-category.enum';
 
 interface MenuFilter {
-  category?: MenuCategory; // 카테고리 필터링
-  contexts?: string; // context 필터링을 위한 문자열
+  category?: MenuCategory;
   isBest?: boolean;
+  contexts?: {
+    $in: string[];
+  };
 }
 
 @Injectable()
@@ -21,7 +22,7 @@ export class MenusService {
   ) {}
 
   async getRouletteMenu(dto: RouletteMenuDto): Promise<RouletteMenuResponseDto[]> {
-    const { category, context, limit = 1 } = dto;
+    const { category, context, limit = 8 } = dto;
 
     const filter: MenuFilter = {};
 
@@ -33,11 +34,12 @@ export class MenusService {
       }
     }
 
+    // 상황 필터
     if (context) {
-      filter.contexts = context;
+      filter.contexts = { $in: [context] };
     }
 
-    const menus = await this.menuModel.aggregate<RouletteMenuResponseDto>([
+    return this.menuModel.aggregate<RouletteMenuResponseDto>([
       { $match: filter },
       { $sample: { size: limit } },
       {
@@ -54,7 +56,5 @@ export class MenusService {
         },
       },
     ]);
-
-    return menus;
   }
 }

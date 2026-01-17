@@ -12,6 +12,7 @@ export const menuSeedData = [
     name: '된장찌개',
     category: MenuCategory.KOREAN,
     contexts: [MenuContext.LUNCH, MenuContext.DATE],
+    isBest: true,
   },
   {
     name: '비빔밥',
@@ -32,6 +33,7 @@ export const menuSeedData = [
     name: '제육볶음',
     category: MenuCategory.KOREAN,
     contexts: [MenuContext.SOLO, MenuContext.LUNCH],
+    isBest: true,
   },
   {
     name: '갈비탕',
@@ -54,6 +56,7 @@ export const menuSeedData = [
     name: '짬뽕',
     category: MenuCategory.CHINESE,
     contexts: [MenuContext.STRESS, MenuContext.GROUP],
+    isBest: true,
   },
   {
     name: '마라탕',
@@ -74,6 +77,7 @@ export const menuSeedData = [
     name: '탕수육',
     category: MenuCategory.CHINESE,
     contexts: [MenuContext.STRESS, MenuContext.GROUP],
+    isBest: true,
   },
   {
     name: '유린기',
@@ -91,6 +95,7 @@ export const menuSeedData = [
     name: '초밥',
     category: MenuCategory.JAPANESE,
     contexts: [MenuContext.DATE, MenuContext.LUNCH, MenuContext.DIET],
+    isBest: true,
   },
   {
     name: '우동',
@@ -111,6 +116,7 @@ export const menuSeedData = [
     name: '돈카츠',
     category: MenuCategory.JAPANESE,
     contexts: [MenuContext.DATE, MenuContext.LUNCH, MenuContext.GROUP],
+    isBest: true,
   },
   {
     name: '오코노미야끼',
@@ -126,6 +132,7 @@ export const menuSeedData = [
     name: '텐동',
     category: MenuCategory.JAPANESE,
     contexts: [MenuContext.DATE, MenuContext.SOLO],
+    isBest: true,
   },
 
   // 양식
@@ -138,16 +145,19 @@ export const menuSeedData = [
     name: '리조또',
     category: MenuCategory.WESTERN,
     contexts: [MenuContext.SOLO, MenuContext.LUNCH],
+    isBest: true,
   },
   {
     name: '피자',
     category: MenuCategory.WESTERN,
     contexts: [MenuContext.STRESS, MenuContext.GROUP],
+    isBest: true,
   },
   {
     name: '스테이크',
     category: MenuCategory.WESTERN,
     contexts: [MenuContext.DATE, MenuContext.LUNCH],
+    isBest: true,
   },
   {
     name: '샐러드',
@@ -185,11 +195,13 @@ export const menuSeedData = [
     name: '순대',
     category: MenuCategory.SNACK,
     contexts: [MenuContext.LUNCH, MenuContext.STRESS],
+    isBest: true,
   },
   {
     name: '라면',
     category: MenuCategory.SNACK,
     contexts: [MenuContext.SOLO, MenuContext.LUNCH],
+    isBest: true,
   },
   {
     name: '튀김',
@@ -210,5 +222,6 @@ export const menuSeedData = [
     name: '컵밥',
     category: MenuCategory.SNACK,
     contexts: [MenuContext.STRESS, MenuContext.SOLO],
+    isBest: true,
   },
 ];

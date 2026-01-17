@@ -12,7 +12,7 @@ export class Menu extends Document {
 
   @Prop({
     type: String,
-    enum: Object.values(MenuCategory),
+    enum: ['korean', 'chinese', 'japanese', 'western', 'snack'],
     required: true,
   })
   category: MenuCategory;

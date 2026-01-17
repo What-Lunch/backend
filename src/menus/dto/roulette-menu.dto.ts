@@ -29,5 +29,5 @@ export class RouletteMenuDto {
   @Type(() => Number)
   @IsNumber()
   @Min(1)
-  limit?: number = 1;
+  limit?: number;
 }
