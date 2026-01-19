@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import { Menu } from '../schemas/menu.schemas';
 import { RouletteMenuDto, RouletteMenuResponseDto } from '../dto/roulette-menu.dto';
 import { MenuCategory } from '../enum/menu-category.enum';
+import { RouletteResultDto } from '../dto/roulette-result.dto';
+import { RouletteResult } from '../schemas/menu-result.schemas';
 
 interface MenuFilter {
   category?: MenuCategory;
@@ -19,6 +21,8 @@ export class MenusService {
   constructor(
     @InjectModel(Menu.name)
     private readonly menuModel: Model<Menu>,
+    @InjectModel(RouletteResult.name)
+    private readonly rouletteResultModel: Model<RouletteResult>,
   ) {}
 
   async getRouletteMenu(dto: RouletteMenuDto): Promise<RouletteMenuResponseDto[]> {
@@ -56,5 +60,31 @@ export class MenusService {
         },
       },
     ]);
+  }
+
+  async saveRouletteResult(body: RouletteResultDto): Promise<RouletteResult> {
+    const participantObjectIds = body.participantId.map((id) => {
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException(`Invalid participant ID: ${id}`);
+      }
+      return new Types.ObjectId(id);
+    });
+
+    return this.rouletteResultModel.create({
+      roomId: body.roomId,
+      participantId: participantObjectIds,
+      resultMenu: body.resultMenu,
+    });
+  }
+
+  async getRouletteResultById(roomId: string): Promise<RouletteResult | null> {
+    if (!Types.ObjectId.isValid(roomId)) {
+      throw new BadRequestException('Invalid result ID');
+    }
+
+    return this.rouletteResultModel
+      .findById(roomId)
+      .populate('participantId', 'nickname email profileImage')
+      .exec();
   }
 }
