@@ -25,6 +25,7 @@ export class MenusService {
     private readonly rouletteResultModel: Model<RouletteResult>,
   ) {}
 
+  // 룰렛 메뉴 조회
   async getRouletteMenu(dto: RouletteMenuDto): Promise<RouletteMenuResponseDto[]> {
     const { category, context, limit = 8 } = dto;
 
@@ -62,6 +63,7 @@ export class MenusService {
     ]);
   }
 
+  // 룰렛 결과 저장
   async saveRouletteResult(body: RouletteResultDto): Promise<RouletteResult> {
     const participantObjectIds = body.participantId.map((id) => {
       if (!Types.ObjectId.isValid(id)) {
@@ -77,14 +79,12 @@ export class MenusService {
     });
   }
 
-  async getRouletteResultById(roomId: string): Promise<RouletteResult | null> {
-    if (!Types.ObjectId.isValid(roomId)) {
-      throw new BadRequestException('Invalid result ID');
-    }
-
+  // 룰렛 결과를 룸 ID로 조회
+  async getRouletteResultsByRoomId(roomId: string): Promise<RouletteResult[]> {
     return this.rouletteResultModel
-      .findById(roomId)
+      .find({ roomId })
       .populate('participantId', 'nickname email profileImage')
+      .sort({ createdAt: -1 })
       .exec();
   }
 }
