@@ -1,8 +1,9 @@
-import { Controller, Get, Query, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Query, Post, Body } from '@nestjs/common';
 
 import { MenusService } from '../service/menus.service';
 import { RouletteMenuDto } from '../dto/roulette-menu.dto';
 import { RouletteResultDto } from '../dto/roulette-result.dto';
+import { RoomIdParamDto } from '../dto/room-id.dto';
 
 @Controller('menus')
 export class MenusController {
@@ -20,9 +21,10 @@ export class MenusController {
     return this.menusService.saveRouletteResult(body);
   }
 
+  // TODO: 웹소켓 연결 후 수정
   // 방의 모든 결과 조회 (친구들과 공유용)
-  @Get('roulette-result/:roomId')
-  getRouletteResultsByRoomId(@Param('roomId') roomId: string) {
-    return this.menusService.getRouletteResultsByRoomId(roomId);
+  @Get('roulette-result')
+  getRouletteResultsByRoomId(@Query() query: RoomIdParamDto) {
+    return this.menusService.getRouletteResultsByRoomId(query.roomId);
   }
 }

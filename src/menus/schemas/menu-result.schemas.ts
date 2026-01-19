@@ -1,6 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { RouletteMenuResponseDto } from '../dto/roulette-menu.dto';
+import { Menu } from './menu.schemas';
+
+export const ResultMenuSchema = SchemaFactory.createForClass(Menu);
 
 export type RouletteResultDocument = RouletteResult & Document;
 
@@ -12,8 +14,8 @@ export class RouletteResult {
   @Prop({ type: [Types.ObjectId], ref: 'User', required: true })
   participantId: Types.ObjectId[];
 
-  @Prop({ type: Array, required: true })
-  resultMenu: RouletteMenuResponseDto[];
+  @Prop({ type: [ResultMenuSchema], required: true })
+  resultMenu: Menu[];
 }
 
 export const RouletteResultSchema = SchemaFactory.createForClass(RouletteResult);
