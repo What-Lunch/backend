@@ -15,12 +15,7 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
-      const allowedOrigins = [
-        'http://localhost:3000', // 백엔드 포트
-        'http://localhost:3001', // 프론트 포트 (추후 삭제)
-        'http://localhost:3002', // 추후 삭제
-        'https://whatlunch.vercel.app',
-      ];
+      const allowedOrigins = ['http://localhost:3000', 'https://whatlunch.vercel.app'];
 
       if (
         !origin ||
@@ -35,7 +30,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const port = process.env.PORT ?? 3001; // 추후에 3000으로 변경 예정
+  const port = process.env.PORT ?? 8080;
   await app.listen(port);
 }
 void bootstrap();

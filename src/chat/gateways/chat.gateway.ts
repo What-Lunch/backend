@@ -16,8 +16,8 @@ interface SocketUser {
 }
 
 interface SocketData {
-  user?: SocketUser;
-  role?: 'host' | 'guest';
+  user: SocketUser;
+  role: 'host' | 'guest';
 }
 
 type TypedSocket = Socket & { data: SocketData };
@@ -33,7 +33,7 @@ interface SendMessagePayload {
 
 @WebSocketGateway({
   cors: {
-    origin: ['http://localhost:3000', 'http://localhost:3002', 'https://whatlunch.vercel.app'],
+    origin: ['http://localhost:3000', 'http://localhost:8080', 'https://whatlunch.vercel.app'],
     credentials: true,
   },
 })
@@ -70,32 +70,33 @@ export class ChatGateway {
   @SubscribeMessage('joinRoom')
   async handleJoinRoom(@ConnectedSocket() client: Socket, @MessageBody() payload: JoinRoomPayload) {
     const socket = client as TypedSocket;
-    const user = socket.data.user as SocketUser | undefined;
+    const user = socket.data.user;
     if (!user) return;
 
     const { roomCode } = payload;
 
+    if (socket.rooms.has(roomCode)) {
+      return;
+    }
+
     const result = this.chatService.joinRoom(roomCode, user);
     if (!result) {
-      socket.emit('error', { message: 'ROOM_NOT_FOUND' });
+      socket.emit('joinError', { reason: 'ROOM_NOT_FOUND' });
       return;
     }
 
     const { room, isHost } = result;
-    const role: 'host' | 'guest' = isHost ? 'host' : 'guest';
-    socket.data.role = role;
+    socket.data.role = isHost ? 'host' : 'guest';
 
     await socket.join(roomCode);
 
-    // 현재 방 유저 목록 전달
-    socket.emit('roomUsers', room.users);
+    this.server.to(roomCode).emit('roomUsers', room.users);
 
-    // 기존 유저들에게 입장 알림
     socket.to(roomCode).emit('systemMessage', {
-      message: `${user.nickname} 님이 입장했습니다.${isHost ? ' (host)' : ''}`,
+      message: `${user.nickname} 님이 입장했습니다.`,
     });
 
-    socket.emit('roleAssigned', { role });
+    socket.emit('roleAssigned', { role: socket.data.role });
   }
 
   @SubscribeMessage('sendMessage')
