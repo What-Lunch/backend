@@ -1,4 +1,4 @@
-import { Controller, Get, NotFoundException, Param, Post, Req } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param, Post } from '@nestjs/common';
 import { ChatService } from '../chat.service';
 
 const ROOM_CODE_LENGTH = 6;
@@ -20,10 +20,9 @@ export class RoomsController {
   // 방 생성
   @Post()
   createRoom() {
-    const MAX_ATTEMPTS = 10;
     let roomCode: string | null = null;
 
-    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    for (let attempt = 0; attempt < MAX_ROOM_CODE_ATTEMPTS; attempt++) {
       const candidate = generateRoomCode();
 
       if (!this.chatService.getRoom(candidate)) {

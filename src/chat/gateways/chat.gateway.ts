@@ -70,7 +70,7 @@ export class ChatGateway {
   @SubscribeMessage('joinRoom')
   async handleJoinRoom(@ConnectedSocket() client: Socket, @MessageBody() payload: JoinRoomPayload) {
     const socket = client as TypedSocket;
-    const user = socket.data.user;
+    const user = socket.data.user as SocketUser | undefined;
     if (!user) return;
 
     const { roomCode } = payload;
@@ -96,7 +96,10 @@ export class ChatGateway {
       message: `${user.nickname} 님이 입장했습니다.`,
     });
 
-    socket.emit('roleAssigned', { role: socket.data.role });
+    const role: 'host' | 'guest' = isHost ? 'host' : 'guest';
+    socket.data.role = role;
+
+    socket.emit('roleAssigned', { role });
   }
 
   @SubscribeMessage('sendMessage')
