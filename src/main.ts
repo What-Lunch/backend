@@ -35,7 +35,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const port = process.env.PORT ?? 3001; // 추후에 3000으로 변경 예정
+  const port = process.env.PORT ?? 8080;
   await app.listen(port);
 }
 void bootstrap();
