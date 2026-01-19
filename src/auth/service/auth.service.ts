@@ -4,6 +4,7 @@ import {
   ServiceUnavailableException,
   ConflictException,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
@@ -15,7 +16,6 @@ import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/signup.dto';
 import { UpdateMeDto } from '../dto/update.dto';
 import { Token, TokenDocument } from '../schemas/token.schema';
-import { BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
@@ -25,7 +25,7 @@ export class AuthService {
     private readonly tokenModel: Model<TokenDocument>,
   ) {}
 
-  // 공통 함수: 토큰 검증 및 유저 조회
+  // 토큰 검증 및 사용자 조회
   private async validateTokenAndGetUser(accessToken: string) {
     const token = await this.tokenModel.findOne({ value: accessToken });
 
@@ -40,6 +40,11 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  // 액세스 토큰 검증
+  async verifyAccessToken(accessToken: string) {
+    return this.validateTokenAndGetUser(accessToken);
   }
 
   // 회원가입
@@ -135,7 +140,6 @@ export class AuthService {
       }
     }
 
-    // 변경 사항 없음
     if (Object.keys(updateData).length === 0) {
       throw new BadRequestException('변경할 정보가 제공되지 않았습니다');
     }
