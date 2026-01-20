@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
-import { AuthModule } from './auth/controller/auth.module';
+import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { MenusModule } from './menus/controller/menus.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { MenusModule } from './menus/controller/menus.module';
     UsersModule,
     AuthModule,
     MenusModule,
+    ChatModule,
   ],
 })
 export class AppModule {}
