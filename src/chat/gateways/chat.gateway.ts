@@ -75,10 +75,6 @@ export class ChatGateway {
 
     const { roomCode } = payload;
 
-    if (socket.rooms.has(roomCode)) {
-      return;
-    }
-
     const result = this.chatService.joinRoom(roomCode, user);
     if (!result) {
       socket.emit('joinError', { reason: 'ROOM_NOT_FOUND' });
@@ -112,7 +108,7 @@ export class ChatGateway {
 
     const result = this.chatService.handleMessage(message);
 
-    socket.to(roomCode).emit('receiveMessage', {
+    this.server.to(roomCode).emit('receiveMessage', {
       sender: user.nickname,
       ...result,
     });
