@@ -57,11 +57,19 @@ export class ChatService {
     // 첫 실제 유저 host
     if (room.hostId === 'temp-host') {
       room.hostId = user.id;
+      // 유령 방장(temp-host)을 유저 목록에서 제거
+      room.users = room.users.filter((u) => u.id !== 'temp-host');
     }
 
     // 유저 추가
     if (!isAlreadyUser) {
       room.users.push(user);
+    } else {
+      // 이미 있는 유저라면 정보를 최신으로 갱신
+      const index = room.users.findIndex((u) => u.id === user.id);
+      if (index !== -1) {
+        room.users[index] = user;
+      }
     }
 
     return {
