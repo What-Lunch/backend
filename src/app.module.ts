@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { MenusModule } from './menus/controller/menus.module';
 import { ChatModule } from './chat/chat.module';
+import { HealthModule } from './common/health/health.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ChatModule } from './chat/chat.module';
         return { uri };
       },
     }),
+    HealthModule,
     UsersModule,
     AuthModule,
     MenusModule,
