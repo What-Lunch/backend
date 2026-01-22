@@ -32,8 +32,10 @@ interface SendMessagePayload {
 }
 
 @WebSocketGateway({
+  path: '/socket.io',
+  transports: ['websocket'],
   cors: {
-    origin: ['http://localhost:3000', 'http://localhost:8080', 'https://whatlunch.vercel.app'],
+    origin: ['https://whatlunch.vercel.app'],
     credentials: true,
   },
 })
