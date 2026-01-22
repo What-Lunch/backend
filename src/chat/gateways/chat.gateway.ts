@@ -108,7 +108,7 @@ export class ChatGateway {
 
     const result = this.chatService.handleMessage(message);
 
-    this.server.to(roomCode).emit('receiveMessage', {
+    client.broadcast.to(roomCode).emit('receiveMessage', {
       sender: user.nickname,
       ...result,
     });

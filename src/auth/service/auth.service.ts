@@ -94,21 +94,32 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     try {
-      // 기존 토큰 제거 (단일 세션 정책)
-      await this.tokenModel.deleteMany({ userId: user._id });
-
-      await this.tokenModel.create({
-        value: accessToken,
-        userId: user._id,
-        expiresAt,
-      });
+      await this.tokenModel.findOneAndUpdate(
+        { userId: user._id },
+        {
+          value: accessToken,
+          expiresAt,
+        },
+        {
+          upsert: true,
+          new: true,
+        },
+      );
     } catch {
       throw new ServiceUnavailableException(
         '로그인 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
       );
     }
 
-    return { accessToken, expiresAt };
+    return {
+      accessToken,
+      expiresAt,
+      user: {
+        email: user.email,
+        nickname: user.nickname,
+        profileImage: user.profileImage,
+      },
+    };
   }
 
   // 내 정보 조회
