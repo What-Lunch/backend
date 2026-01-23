@@ -1,12 +1,13 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 
 import { Menu } from '../schemas/menu.schemas';
 import { RouletteMenuDto, RouletteMenuResponseDto } from '../dto/roulette-menu.dto';
 import { MenuCategory } from '../enum/menu-category.enum';
 import { RouletteResultDto } from '../dto/roulette-result.dto';
 import { RouletteResult } from '../schemas/menu-result.schemas';
+import { MenuContext } from '../enum/menu-context.enum';
 
 interface MenuFilter {
   category?: MenuCategory;
@@ -63,20 +64,98 @@ export class MenusService {
     ]);
   }
 
-  // 룰렛 결과 저장
-  async saveRouletteResult(body: RouletteResultDto): Promise<RouletteResult> {
-    const participantObjectIds = body.participantId.map((id) => {
-      if (!Types.ObjectId.isValid(id)) {
-        throw new BadRequestException(`Invalid participant ID: ${id}`);
-      }
-      return new Types.ObjectId(id);
-    });
+  // 조건에 맞는 메뉴 조회 (필터가 없으면 전체 메뉴)
+  async getMenusByFilters(
+    filters: {
+      category?: MenuCategory[];
+      context?: MenuContext[];
+    } = {},
+  ): Promise<RouletteMenuResponseDto[]> {
+    const filter: MenuFilter = {};
 
-    return this.rouletteResultModel.create({
-      roomId: body.roomId,
-      participantId: participantObjectIds,
-      resultMenu: body.resultMenu,
-    });
+    // category 필터 처리
+    if (filters.category && filters.category.length > 0) {
+      const validCategories = filters.category.filter((cat) => cat !== MenuCategory.ALL);
+
+      if (validCategories.length > 0) {
+        filter.category = { $in: validCategories } as any;
+      }
+    }
+
+    // context 필터 처리
+    if (filters.context && filters.context.length > 0) {
+      filter.contexts = { $in: filters.context };
+    }
+
+    try {
+      const results = await this.menuModel.aggregate<RouletteMenuResponseDto>([
+        { $match: filter },
+        { $sample: { size: 8 } },
+        {
+          $project: {
+            _id: 0,
+            id: '$_id',
+            name: 1,
+            category: 1,
+            contexts: 1,
+            isBest: 1,
+            calorie: 1,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        },
+      ]);
+
+      // 샘플이 반환하지 않으면 제한 없이 모든 메뉴 조회
+      if (!results || results.length === 0) {
+        console.warn('[MenusService] $sample 결과가 없음, 모든 메뉴 조회 시도');
+        return this.menuModel.aggregate<RouletteMenuResponseDto>([
+          { $match: filter },
+          { $limit: 8 },
+          {
+            $project: {
+              _id: 0,
+              id: '$_id',
+              name: 1,
+              category: 1,
+              contexts: 1,
+              isBest: 1,
+              calorie: 1,
+              createdAt: 1,
+              updatedAt: 1,
+            },
+          },
+        ]);
+      }
+
+      return results;
+    } catch (error) {
+      console.error('[MenusService] getMenusByFilters 오류:', error);
+      // 오류 시 제한 없이 모든 메뉴 조회
+      return this.menuModel.aggregate<RouletteMenuResponseDto>([
+        { $match: filter },
+        { $limit: 8 },
+        {
+          $project: {
+            _id: 0,
+            id: '$_id',
+            name: 1,
+            category: 1,
+            contexts: 1,
+            isBest: 1,
+            calorie: 1,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        },
+      ]);
+    }
+  }
+  // 룰렛 결과 저장
+
+  async saveRouletteResult(body: RouletteResultDto): Promise<RouletteResult> {
+    const rouletteResult = new this.rouletteResultModel(body);
+    return rouletteResult.save();
   }
 
   // 룰렛 결과를 룸 ID로 조회

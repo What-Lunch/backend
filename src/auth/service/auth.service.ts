@@ -25,7 +25,7 @@ export class AuthService {
     private readonly tokenModel: Model<TokenDocument>,
   ) {}
 
-  // 토큰 검증 및 사용자 조회
+  // ============ 토큰 검증 및 사용자 조회 ============
   private async validateTokenAndGetUser(accessToken: string) {
     const token = await this.tokenModel.findOne({ value: accessToken });
 
@@ -42,12 +42,55 @@ export class AuthService {
     return user;
   }
 
-  // 액세스 토큰 검증
+  // ============ WebSocket용 토큰 검증 ============
+  async verifyToken(accessToken: string) {
+    try {
+      console.log('[AuthService] verifyToken 시작');
+
+      if (!accessToken) {
+        console.log('[AuthService] 토큰 없음');
+        return null;
+      }
+
+      const token = await this.tokenModel.findOne({ value: accessToken });
+
+      if (!token) {
+        console.log('[AuthService] DB에 토큰 없음');
+        return null;
+      }
+
+      if (token.expiresAt < new Date()) {
+        console.log('[AuthService] 토큰 만료됨');
+        return null;
+      }
+
+      const user = await this.usersService.findById(token.userId);
+
+      if (!user) {
+        console.log('[AuthService] 사용자 없음');
+        return null;
+      }
+
+      console.log('[AuthService] ✅ 토큰 검증 성공:', user.email);
+
+      return {
+        id: user._id.toString(),
+        email: user.email,
+        nickname: user.nickname,
+        profileImage: user.profileImage,
+      };
+    } catch (error) {
+      console.error('[AuthService] verifyToken 오류:', error);
+      return null;
+    }
+  }
+
+  // ============ 액세스 토큰 검증 ============
   async verifyAccessToken(accessToken: string) {
     return this.validateTokenAndGetUser(accessToken);
   }
 
-  // 회원가입
+  // ============ 회원가입 ============
   async signup(dto: RegisterDto) {
     let hashedPassword: string;
     try {
@@ -81,7 +124,7 @@ export class AuthService {
     }
   }
 
-  // 로그인
+  // ============ 로그인 ============
   async login(dto: LoginDto) {
     const user = await this.usersService.findByEmail(dto.email);
 
@@ -122,7 +165,7 @@ export class AuthService {
     };
   }
 
-  // 내 정보 조회
+  // ============ 내 정보 조회 ============
   async getMe(accessToken: string) {
     const user = await this.validateTokenAndGetUser(accessToken);
 
@@ -133,7 +176,7 @@ export class AuthService {
     };
   }
 
-  // 내 정보 수정
+  // ============ 내 정보 수정 ============
   async updateMe(accessToken: string, dto: UpdateMeDto) {
     const user = await this.validateTokenAndGetUser(accessToken);
 
