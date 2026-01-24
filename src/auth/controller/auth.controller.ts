@@ -6,6 +6,7 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Headers,
   UnauthorizedException,
   Header,
@@ -73,6 +74,22 @@ export class AuthController {
     }
 
     return this.authService.updateMe(accessToken, updateMeDto);
+  }
+
+  // 프로필 이미지 삭제 (기본 이미지로 초기화)
+  @Delete('me/profile-image')
+  async deleteProfileImage(@Headers('authorization') authorization: string) {
+    if (!authorization) {
+      throw new UnauthorizedException('Authorization 헤더가 없습니다');
+    }
+
+    const [scheme, accessToken] = authorization.split(' ');
+
+    if (scheme !== 'Bearer' || !accessToken) {
+      throw new UnauthorizedException('Authorization 형식이 올바르지 않습니다');
+    }
+
+    return this.authService.removeProfileImage(accessToken);
   }
 
   // 프로필 이미지 업로드용 presigned URL 발급

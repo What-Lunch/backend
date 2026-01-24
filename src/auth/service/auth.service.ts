@@ -146,13 +146,27 @@ export class AuthService {
     };
   }
 
+  // 프로필 이미지 삭제
+  async removeProfileImage(accessToken: string) {
+    const user = await this.validateTokenAndGetUser(accessToken);
+
+    const updatedUser = await this.usersService.updateById(user._id, {
+      profileImage: null,
+    });
+
+    return {
+      email: updatedUser.email,
+      nickname: updatedUser.nickname,
+      profileImage: updatedUser.profileImage,
+    };
+  }
+
   // 프로필 이미지 업로드용 Presigned URL 생성
   async createProfileImagePresignedUrl(contentType: string) {
     if (!contentType || !contentType.startsWith('image/')) {
       throw new BadRequestException('이미지 파일만 업로드할 수 있습니다');
     }
 
-    // S3 Client 생성
     const s3Client = new S3Client({
       region: process.env.AWS_REGION,
       credentials: {
