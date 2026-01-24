@@ -182,7 +182,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         roomCode: payload.roomCode,
         clientId: client.id,
         user,
-        menus: roomState?.menus || [], // 메뉴 포함
+        menus: roomState?.menus || [],
       });
     } catch (error) {
       console.error('[Gateway] joinRoom 오류:', error);
@@ -348,7 +348,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!user) return;
 
       // 서버에서 필터에 맞는 메뉴 로드
-      // MenuCategory/MenuContext enum import
 
       function toEnumArr<T extends string>(
         arr: unknown,
