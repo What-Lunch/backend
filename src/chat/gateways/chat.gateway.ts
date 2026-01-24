@@ -156,20 +156,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // 호스트 관리: 방 상태에 hostId 저장
       const roomState = this.roomStates.get(payload.roomCode);
       const isFirstUser = this.server.sockets.adapter.rooms.get(payload.roomCode)?.size === 1;
-      let role = isFirstUser ? 'host' : 'guest';
-      if (roomState && !roomState.hostId) {
-        // 최초 입장자 또는 호스트가 없는 경우
-        roomState.hostId = user.id;
-        role = 'host';
-      }
-      // 클라이언트가 host로 재접속 요청 시
-      if (payload.role === 'host' && roomState && roomState.hostId === user.id) {
-        role = 'host';
-      }
-      // 방 상태에 저장
+      let role: 'host' | 'guest' = 'guest';
       if (roomState) {
-        roomState.hostId = roomState.hostId || (role === 'host' ? user.id : undefined);
+        // 최초 입장자 또는 호스트가 없는 경우
+        if (!roomState.hostId) {
+          roomState.hostId = user.id;
+        }
+        // hostId와 user.id가 일치하면 무조건 host
+        if (roomState.hostId === user.id) {
+          role = 'host';
+        } else {
+          role = 'guest';
+        }
+      } else {
+        // 방 상태가 없으면 첫 유저는 host
+        role = isFirstUser ? 'host' : 'guest';
       }
+      // 방 상태에 저장 (hostId가 없으면 host로 지정)
+      if (roomState && !roomState.hostId && role === 'host') {
+        roomState.hostId = user.id;
+      }
+      // 클라이언트가 host로 재접속 요청해도 hostId와 user.id가 다르면 guest로 내려줌
       client.emit('roleAssigned', {
         role,
         roomCode: payload.roomCode,
