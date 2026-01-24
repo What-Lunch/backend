@@ -9,4 +9,8 @@ export class UpdateMeDto {
   @IsOptional()
   @IsPassword()
   password?: string;
+
+  @IsOptional()
+  @IsString()
+  profileImage?: string;
 }
