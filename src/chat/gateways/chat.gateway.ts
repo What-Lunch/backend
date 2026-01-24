@@ -7,10 +7,13 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
+import { MenuCategory } from '../../menus/enum/menu-category.enum';
+import { MenuContext } from '../../menus/enum/menu-context.enum';
 import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
 import { AuthService } from '../../auth/service/auth.service';
 import { MenusService } from '../../menus/service/menus.service';
+import { RouletteMenuResponseDto } from '../../menus/dto/roulette-menu.dto';
 
 interface AuthenticatedSocket extends Socket {
   user?: {
@@ -42,7 +45,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       rotation: number;
       result: any;
       startedBy: string | null;
-      menus: any[]; // 현재 방의 메뉴 목록 (모든 클라이언트 동기화)
+      menus: RouletteMenuResponseDto[]; // 현재 방의 메뉴 목록 (모든 클라이언트 동기화)
+      hostId?: string;
     }
   > = new Map();
 
@@ -54,16 +58,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // ============ 연결 ============
   async handleConnection(client: AuthenticatedSocket): Promise<void> {
     try {
-      const token = client.handshake.auth?.token;
-
-      console.log('[Gateway] 🔌 새 연결 시도:', {
-        clientId: client.id,
-        hasToken: !!token,
-        tokenPreview: token ? token.substring(0, 20) + '...' : 'NONE',
-      });
+      const token = (client.handshake.auth as { token?: string })?.token;
 
       if (!token) {
-        console.log('[Gateway] ❌ 토큰 없음:', client.id);
         client.emit('joinError', { reason: 'NO_TOKEN' });
         client.disconnect();
         return;
@@ -73,7 +70,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const user = await this.authService.verifyToken(token);
 
       if (!user) {
-        console.log('[Gateway] ❌ 토큰 검증 실패:', client.id);
         client.emit('joinError', { reason: 'INVALID_TOKEN' });
         client.disconnect();
         return;
@@ -84,13 +80,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         ...user,
         profileImage: user.profileImage ?? undefined,
       };
-
-      console.log('[Gateway] ✅ 클라이언트 연결 + 사용자 정보 저장:', {
-        clientId: client.id,
-        userId: user.id,
-        userEmail: user.email,
-        userStored: !!client.user,
-      });
 
       // 연결 성공 알림
       client.emit('connected', {
@@ -107,44 +96,40 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // ============ 연결 해제 ============
   handleDisconnect(client: AuthenticatedSocket): void {
-    const user = (client as AuthenticatedSocket).user;
-    console.log('[Gateway] 🔌 클라이언트 해제:', {
-      clientId: client.id,
-      userId: user?.id,
-    });
+    try {
+      const user = client.user;
+      if (!user) return;
+      client.rooms.forEach((roomCode) => {
+        if (roomCode !== client.id) {
+          client.to(roomCode).emit('userLeft', {
+            userId: user.id,
+            userEmail: user.email,
+            clientId: client.id,
+            roomCode: roomCode,
+          });
+        }
+      });
+    } catch (error) {
+      console.error('[Gateway] 연결 해제 오류:', error);
+    }
   }
 
   // ============ 방 입장 ============
   @SubscribeMessage('joinRoom')
   async handleJoinRoom(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() payload: { roomCode: string },
+    @MessageBody() payload: { roomCode: string; role?: string },
   ): Promise<void> {
     try {
       const user = client.user;
 
-      console.log('[Gateway] joinRoom 요청:', {
-        clientId: client.id,
-        hasUser: !!user,
-        userId: user?.id,
-        userEmail: user?.email,
-        roomCode: payload.roomCode,
-      });
-
       if (!user) {
-        console.log('[Gateway] ❌ joinRoom: 사용자 정보 없음 - client.user =', user);
         client.emit('joinError', { reason: 'UNAUTHORIZED' });
         return;
       }
 
-      console.log('[Gateway] joinRoom:', {
-        clientId: client.id,
-        userId: user.id,
-        roomCode: payload.roomCode,
-      });
-
       // 방에 입장
-      client.join(payload.roomCode);
+      await client.join(payload.roomCode);
 
       // 방 상태 초기화
       if (!this.roomStates.has(payload.roomCode)) {
@@ -156,7 +141,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           rotation: 0,
           result: null,
           startedBy: null,
-          menus: initialMenus.slice(0, 6), // 최대 6개
+          menus: initialMenus,
         });
       }
 
@@ -168,46 +153,77 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         roomCode: payload.roomCode,
       });
 
-      // 입장자에게 역할 할당 + 메뉴 상태 함께 전송
+      // 호스트 관리: 방 상태에 hostId 저장
+      const roomState = this.roomStates.get(payload.roomCode);
       const isFirstUser = this.server.sockets.adapter.rooms.get(payload.roomCode)?.size === 1;
-      const role = isFirstUser ? 'host' : 'guest';
-
-      const currentState = this.roomStates.get(payload.roomCode);
-
+      let role = isFirstUser ? 'host' : 'guest';
+      if (roomState && !roomState.hostId) {
+        // 최초 입장자 또는 호스트가 없는 경우
+        roomState.hostId = user.id;
+        role = 'host';
+      }
+      // 클라이언트가 host로 재접속 요청 시
+      if (payload.role === 'host' && roomState && roomState.hostId === user.id) {
+        role = 'host';
+      }
+      // 방 상태에 저장
+      if (roomState) {
+        roomState.hostId = roomState.hostId || (role === 'host' ? user.id : undefined);
+      }
       client.emit('roleAssigned', {
         role,
         roomCode: payload.roomCode,
         clientId: client.id,
         user,
-        menus: currentState?.menus || [], // 메뉴 포함
-      });
-
-      console.log('[Gateway] ✅ 방 입장 성공:', {
-        roomCode: payload.roomCode,
-        role,
-        menuCount: currentState?.menus?.length || 0,
+        menus: roomState?.menus || [], // 메뉴 포함
       });
     } catch (error) {
       console.error('[Gateway] joinRoom 오류:', error);
       client.emit('joinError', { reason: 'JOIN_FAILED' });
-    }
-  }
-
-  // ============ 상태 요청 ============
-  @SubscribeMessage('requestRouletteState')
-  handleRequestRouletteState(
-    @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() payload: { roomCode: string },
-  ): void {
-    try {
-      const user = (client as AuthenticatedSocket).user;
-
-      if (!user) {
-        client.emit('joinError', { reason: 'UNAUTHORIZED' });
-        return;
+      try {
+        const user = client.user;
+        if (!user) return;
+        client.rooms.forEach((roomCode) => {
+          if (roomCode !== client.id) {
+            // 호스트가 나가면 방의 다른 유저 중 한 명을 호스트로 재할당
+            const roomState = this.roomStates.get(roomCode);
+            if (roomState && roomState.hostId === user.id) {
+              // 방에 남은 유저 중 한 명을 호스트로 지정
+              const room = this.server.sockets.adapter.rooms.get(roomCode);
+              if (room && room.size > 1) {
+                for (const socketId of room) {
+                  if (socketId !== client.id) {
+                    const nextSocket = this.server.sockets.sockets.get(socketId);
+                    if (nextSocket && (nextSocket as any).user) {
+                      roomState.hostId = user.id;
+                      // 새 호스트에게 roleAssigned emit
+                      (nextSocket as any).emit('roleAssigned', {
+                        role: 'host',
+                        roomCode,
+                        clientId: socketId,
+                        user: user,
+                        menus: roomState.menus || [],
+                      });
+                      break;
+                    }
+                  }
+                }
+              } else {
+                // 방에 아무도 없으면 hostId 제거
+                roomState.hostId = undefined;
+              }
+            }
+            client.to(roomCode).emit('userLeft', {
+              userId: user.id,
+              userEmail: user.email,
+              clientId: client.id,
+              roomCode: roomCode,
+            });
+          }
+        });
+      } catch (error) {
+        console.error('[Gateway] 연결 해제 오류:', error);
       }
-
-      console.log('[Gateway] requestRouletteState:', payload.roomCode);
 
       const roomState = this.roomStates.get(payload.roomCode) || {
         activeTab: 'roulette',
@@ -218,8 +234,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       };
 
       client.emit('rouletteStateSync', { state: roomState });
-    } catch (error) {
-      console.error('[Gateway] requestRouletteState 오류:', error);
     }
   }
 
@@ -230,10 +244,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() payload: { roomCode: string; tab: string },
   ): void {
     try {
-      const user = (client as AuthenticatedSocket).user;
+      const user = client.user;
       if (!user) return;
-
-      console.log('[Gateway] tabChange:', payload);
 
       // 방 상태 업데이트
       const roomState = this.roomStates.get(payload.roomCode);
@@ -250,26 +262,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // ============ 룰렛 회전 ============
   @SubscribeMessage('spinRoulette')
-  async handleSpinRoulette(
+  handleSpinRoulette(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: { roomCode: string; filters?: any },
-  ): Promise<void> {
+  ): void {
     try {
-      const user = (client as AuthenticatedSocket).user;
+      const user = client.user;
       if (!user) return;
-
-      console.log('[Gateway] spinRoulette:', {
-        roomCode: payload.roomCode,
-        userId: user.id,
-        filters: payload.filters,
-      });
 
       // 방의 현재 메뉴 목록 사용 (모든 클라이언트와 동기화된 상태)
       const roomState = this.roomStates.get(payload.roomCode);
       const menus = roomState?.menus || [];
 
       if (menus.length === 0) {
-        console.log('[Gateway] ❌ 메뉴 없음');
         client.emit('spinError', { reason: 'NO_MENUS' });
         return;
       }
@@ -278,47 +283,38 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const randomIndex = Math.floor(Math.random() * menus.length);
       const randomMenu = menus[randomIndex];
 
-      const rotation = 360 * (8 + Math.random() * 4); // 더 많이 회전 (8~12바퀴)
-      const duration = 5000; // 5초로 증가
+      // 회전 각도: 8~12바퀴 + 해당 메뉴 위치
+      const baseRotation = Math.PI * 2 * (8 + Math.random() * 4); // radian
+      const step = (Math.PI * 2) / menus.length;
+      const itemAngle = step * randomIndex;
+      const finalRotation = baseRotation + itemAngle;
+      const duration = 5000; // 5초
 
       // 방 상태 업데이트
       if (roomState) {
         roomState.isSpinning = true;
-        roomState.rotation = rotation;
+        roomState.rotation = finalRotation;
         roomState.result = randomMenu;
         roomState.startedBy = user.id;
       }
 
-      console.log('[Gateway] 룰렛 회전 시작:', {
-        roomCode: payload.roomCode,
-        menu: randomMenu.name,
-        rotation,
-        selectedIndex: randomIndex,
-      });
-
-      // 같은 방의 모든 사용자에게 전파
-      this.server.to(payload.roomCode).emit('rouletteSpinStarted', {
-        rotation,
+      // 모든 사용자에게 id 기반 결과 emit (오직 1회만)
+      this.server.to(payload.roomCode).emit('rouletteSpin', {
+        menus,
+        resultMenuId: randomMenu.id,
+        finalRotation,
         duration,
-        result: randomMenu,
-        selectedIndex: randomIndex, // 선택된 메뉴의 인덱스
-        startedBy: user.id,
       });
 
-      // 회전 완료 후 결과 전송
+      // 회전 완료 후 결과 전송 (기록/통계용, 클라이언트에서는 무시)
       setTimeout(() => {
         if (roomState) {
           roomState.isSpinning = false;
         }
-
+        // 클라이언트에서는 이 이벤트로 모달을 띄우지 않음
         this.server.to(payload.roomCode).emit('rouletteResult', {
           result: randomMenu,
           timestamp: new Date().toISOString(),
-        });
-
-        console.log('[Gateway] 룰렛 결과:', {
-          roomCode: payload.roomCode,
-          menu: randomMenu.name,
         });
       }, duration);
     } catch (error) {
@@ -341,13 +337,24 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     },
   ): Promise<void> {
     try {
-      const user = (client as AuthenticatedSocket).user;
+      const user = client.user;
       if (!user) return;
 
-      console.log('[Gateway] updateRouletteFilters:', payload);
-
       // 서버에서 필터에 맞는 메뉴 로드
-      const menus = await this.menusService.getMenusByFilters((payload.filters as any) || {});
+      // MenuCategory/MenuContext enum import
+
+      function toEnumArr<T extends string>(
+        arr: unknown,
+        EnumObj: Record<string, T>,
+      ): T[] | undefined {
+        if (!Array.isArray(arr)) return undefined;
+        return arr.map((v) => EnumObj[v as keyof typeof EnumObj]).filter(Boolean);
+      }
+      const safeFilters: { category?: MenuCategory[]; context?: MenuContext[] } = {
+        category: toEnumArr<MenuCategory>(payload.filters?.category, MenuCategory),
+        context: toEnumArr<MenuContext>(payload.filters?.context, MenuContext),
+      };
+      const menus = await this.menusService.getMenusByFilters(safeFilters);
       const menuList = menus.slice(0, 6); // 최대 6개
 
       // 방 상태에 저장
@@ -355,12 +362,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (roomState) {
         roomState.menus = menuList;
       }
-
-      console.log('[Gateway] 메뉴 동기화:', {
-        roomCode: payload.roomCode,
-        menuCount: menuList.length,
-        menuNames: menuList.map((m) => m.name),
-      });
 
       // 모든 사용자에게 전파 (호스트 포함)
       this.server.to(payload.roomCode).emit('rouletteFiltersUpdated', {
@@ -383,14 +384,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() payload: { roomCode: string; message: string },
   ): void {
     try {
-      const user = (client as AuthenticatedSocket).user;
+      const user = client.user;
       if (!user) return;
-
-      console.log('[Gateway] sendMessage:', {
-        roomCode: payload.roomCode,
-        userId: user.id,
-        message: payload.message,
-      });
 
       // 보낸 사람 제외하고 방의 다른 사람들에게만 전송
       client.to(payload.roomCode).emit('messageReceived', {

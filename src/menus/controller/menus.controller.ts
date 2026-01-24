@@ -11,12 +11,10 @@ export class MenusController {
 
   // ============ 룰렛 메뉴 조회 (필터 없음 - 최대 20개) ============
   @Get()
-  async getAllMenus(@Query('roomId') roomId?: string, @Query('limit') limit: string = '20') {
-    console.log('[MenusController] GET /menus:', { roomId, limit });
-
+  async getAllMenus(@Query('roomId') roomId?: string, @Query('limit') limit: string = '6') {
     // roomId는 참고용, 실제로는 모든 메뉴 반환
     const menus = await this.menusService.getRouletteMenu({
-      limit: Math.min(parseInt(limit) || 20, 100),
+      limit: Math.min(parseInt(limit) || 6, 100),
     });
 
     return {
@@ -28,8 +26,6 @@ export class MenusController {
   // ============ 룰렛 메뉴 조회 (필터 포함) ============
   @Get('roulette')
   async roulette(@Query() query: RouletteMenuDto) {
-    console.log('[MenusController] GET /menus/roulette:', query);
-
     const menus = await this.menusService.getRouletteMenu(query);
 
     return {
@@ -41,8 +37,6 @@ export class MenusController {
   // ============ 룰렛 결과 저장 ============
   @Post('roulette-result')
   async saveRouletteResult(@Body() body: RouletteResultDto) {
-    console.log('[MenusController] POST /menus/roulette-result:', body);
-
     const result = await this.menusService.saveRouletteResult(body);
 
     return {
@@ -54,8 +48,6 @@ export class MenusController {
   // ============ 방의 모든 결과 조회 ============
   @Get('roulette-result')
   async getRouletteResultsByRoomId(@Query() query: RoomIdParamDto) {
-    console.log('[MenusController] GET /menus/roulette-result:', query);
-
     const results = await this.menusService.getRouletteResultsByRoomId(query.roomId);
 
     return {

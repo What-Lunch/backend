@@ -1,36 +1,36 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // CORS 설정
-  app.enableCors({
-    origin: ['http://localhost:3000', 'https://whatlunch.vercel.app'],
-    credentials: true,
-  });
-
-  // 검증 파이프
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
+      whitelist: true, // DTO에 없는 속성 제거
+      forbidNonWhitelisted: true, // DTO에 없는 속성 → 에러
       transform: true,
     }),
   );
 
-  const PORT = process.env.PORT || 3001;
+  app.enableCors({
+    origin: (origin, callback) => {
+      const allowedOrigins = ['http://localhost:3000', 'https://whatlunch.vercel.app'];
 
-  await app.listen(PORT);
+      if (
+        !origin ||
+        (typeof origin === 'string' &&
+          (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')))
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+  });
 
-  console.log(`
-╔════════════════════════════════════════╗
-║   🚀 What Lunch Backend 서버 시작     ║
-║   🔗 http://localhost:${PORT}          ║
-║   📡 WebSocket: ws://localhost:${PORT}/socket.io ║
-╚════════════════════════════════════════╝
-  `);
+  const port = process.env.PORT ?? 8080;
+  await app.listen(port);
 }
-
-bootstrap();
+void bootstrap();

@@ -45,33 +45,25 @@ export class AuthService {
   // ============ WebSocket용 토큰 검증 ============
   async verifyToken(accessToken: string) {
     try {
-      console.log('[AuthService] verifyToken 시작');
-
       if (!accessToken) {
-        console.log('[AuthService] 토큰 없음');
         return null;
       }
 
       const token = await this.tokenModel.findOne({ value: accessToken });
 
       if (!token) {
-        console.log('[AuthService] DB에 토큰 없음');
         return null;
       }
 
       if (token.expiresAt < new Date()) {
-        console.log('[AuthService] 토큰 만료됨');
         return null;
       }
 
       const user = await this.usersService.findById(token.userId);
 
       if (!user) {
-        console.log('[AuthService] 사용자 없음');
         return null;
       }
-
-      console.log('[AuthService] ✅ 토큰 검증 성공:', user.email);
 
       return {
         id: user._id.toString(),
