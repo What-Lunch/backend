@@ -29,7 +29,7 @@ export class MenusService {
 
   // 룰렛 메뉴 조회
   async getRouletteMenu(dto: RouletteMenuDto): Promise<RouletteMenuResponseDto[]> {
-    const { category, context, limit = 6 } = dto;
+    const { category, context, limit = 8 } = dto;
 
     const filter: MenuFilter = {};
 

@@ -361,7 +361,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         context: toEnumArr<MenuContext>(payload.filters?.context, MenuContext),
       };
       const menus = await this.menusService.getMenusByFilters(safeFilters);
-      const menuList = menus.slice(0, 6); // 최대 6개
+      const menuList = menus.slice(0, 8); // 최대 8개
 
       // 방 상태에 저장
       const roomState = this.roomStates.get(payload.roomCode);
