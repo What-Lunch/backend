@@ -30,4 +30,7 @@ export class RouletteMenuDto {
   @IsNumber()
   @Min(1)
   limit?: number;
+
+  @IsOptional()
+  roomId?: string;
 }

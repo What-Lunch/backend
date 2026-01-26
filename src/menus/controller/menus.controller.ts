@@ -9,22 +9,50 @@ import { RoomIdParamDto } from '../dto/room-id.dto';
 export class MenusController {
   constructor(private readonly menusService: MenusService) {}
 
-  // 룰렛 메뉴 조회
+  // ============ 룰렛 메뉴 조회 (필터 없음 - 최대 20개) ============
+  @Get()
+  async getAllMenus(@Query('roomId') roomId?: string, @Query('limit') limit: string = '6') {
+    // roomId는 참고용, 실제로는 모든 메뉴 반환
+    const menus = await this.menusService.getRouletteMenu({
+      limit: Math.min(parseInt(limit) || 6, 100),
+    });
+
+    return {
+      data: menus,
+      count: menus.length,
+    };
+  }
+
+  // ============ 룰렛 메뉴 조회 (필터 포함) ============
   @Get('roulette')
   async roulette(@Query() query: RouletteMenuDto) {
-    return this.menusService.getRouletteMenu(query);
+    const menus = await this.menusService.getRouletteMenu(query);
+
+    return {
+      data: menus,
+      count: menus.length,
+    };
   }
 
-  // 룰렛 결과 저장
+  // ============ 룰렛 결과 저장 ============
   @Post('roulette-result')
   async saveRouletteResult(@Body() body: RouletteResultDto) {
-    return this.menusService.saveRouletteResult(body);
+    const result = await this.menusService.saveRouletteResult(body);
+
+    return {
+      success: true,
+      data: result,
+    };
   }
 
-  // TODO: 웹소켓 연결 후 수정
-  // 방의 모든 결과 조회 (친구들과 공유용)
+  // ============ 방의 모든 결과 조회 ============
   @Get('roulette-result')
-  getRouletteResultsByRoomId(@Query() query: RoomIdParamDto) {
-    return this.menusService.getRouletteResultsByRoomId(query.roomId);
+  async getRouletteResultsByRoomId(@Query() query: RoomIdParamDto) {
+    const results = await this.menusService.getRouletteResultsByRoomId(query.roomId);
+
+    return {
+      data: results,
+      count: results.length,
+    };
   }
 }
