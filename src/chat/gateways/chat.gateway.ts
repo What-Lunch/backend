@@ -27,9 +27,9 @@ interface AuthenticatedSocket extends Socket {
 @Injectable()
 @WebSocketGateway({
   path: '/socket.io',
-  transports: ['websocket', 'polling'],
+  transports: ['websocket'],
   cors: {
-    origin: ['http://localhost:3000', 'https://whatlunch.vercel.app'],
+    origin: ['https://whatlunch.vercel.app'],
     credentials: true,
   },
 })
