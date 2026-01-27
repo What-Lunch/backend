@@ -27,9 +27,9 @@ interface AuthenticatedSocket extends Socket {
 @Injectable()
 @WebSocketGateway({
   path: '/socket.io',
-  transports: ['websocket', 'polling'],
+  transports: ['websocket'],
   cors: {
-    origin: ['http://localhost:3000', 'https://whatlunch.vercel.app'],
+    origin: ['https://whatlunch.vercel.app'],
     credentials: true,
   },
 })
@@ -261,7 +261,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       // 같은 방의 모든 사용자에게 전파
-      this.server.to(payload.roomCode).emit('tabSync', { activeTab: payload.tab });
     } catch (error) {
       console.error('[Gateway] tabChange 오류:', error);
     }
