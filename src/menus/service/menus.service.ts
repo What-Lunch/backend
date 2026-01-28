@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import { Menu } from '../schemas/menu.schemas';
 import { RouletteMenuDto, RouletteMenuResponseDto } from '../dto/roulette-menu.dto';
@@ -9,14 +9,27 @@ import { RouletteResultDto } from '../dto/roulette-result.dto';
 import { RouletteResult } from '../schemas/menu-result.schemas';
 import { MenuContext } from '../enum/menu-context.enum';
 
-type CategoryInQuery = { $in: Exclude<MenuCategory, MenuCategory.ALL>[] };
+type CategoryInQuery = { $in: Exclude<MenuCategory, MenuCategory.ALL | MenuCategory.BEST>[] };
+
 interface MenuFilter {
   category?: MenuCategory | CategoryInQuery;
   isBest?: boolean;
   contexts?: {
-    $in: string[];
+    $in: MenuContext[];
   };
 }
+
+const MENU_PROJECTION = {
+  _id: 0,
+  id: '$_id',
+  name: 1,
+  category: 1,
+  contexts: 1,
+  isBest: 1,
+  calorie: 1,
+  createdAt: 1,
+  updatedAt: 1,
+};
 
 @Injectable()
 export class MenusService {
@@ -32,6 +45,7 @@ export class MenusService {
     const { category, context, limit = 8 } = dto;
     const filter: MenuFilter = {};
 
+    // 카테고리만 필터링
     if (category && category !== MenuCategory.ALL) {
       if (category === MenuCategory.BEST) {
         filter.isBest = true;
@@ -44,27 +58,24 @@ export class MenusService {
       filter.contexts = { $in: [context] };
     }
 
-    const menus = await this.menuModel.aggregate<RouletteMenuResponseDto>([
+    let menus = await this.menuModel.aggregate<RouletteMenuResponseDto>([
       { $match: filter },
       { $sample: { size: limit } },
-      {
-        $project: {
-          _id: 0,
-          id: '$_id',
-          name: 1,
-          category: 1,
-          contexts: 1,
-          isBest: 1,
-          calorie: 1,
-          createdAt: 1,
-          updatedAt: 1,
-        },
-      },
+      { $project: MENU_PROJECTION },
     ]);
+
+    // fallback: 조건 결과가 0개일 때만 전체 랜덤
+    if (menus.length === 0) {
+      menus = await this.menuModel.aggregate<RouletteMenuResponseDto>([
+        { $sample: { size: limit } },
+        { $project: MENU_PROJECTION },
+      ]);
+    }
 
     return menus;
   }
 
+  // 조건에 맞는 메뉴 조회 (필터가 없으면 전체 메뉴)
   async getMenusByFilters(
     filters: {
       category?: MenuCategory[];
@@ -73,45 +84,48 @@ export class MenusService {
   ): Promise<RouletteMenuResponseDto[]> {
     const filter: MenuFilter = {};
 
+    // category 필터 처리
     if (filters.category?.length) {
       const validCategories = filters.category.filter(
-        (cat): cat is Exclude<MenuCategory, MenuCategory.ALL> => cat !== MenuCategory.ALL,
+        (cat): cat is Exclude<MenuCategory, MenuCategory.ALL | MenuCategory.BEST> =>
+          cat !== MenuCategory.ALL && cat !== MenuCategory.BEST,
       );
+
       if (validCategories.length) {
         filter.category = { $in: validCategories };
       }
     }
 
+    // context 필터 처리
     if (filters.context?.length) {
       filter.contexts = { $in: filters.context };
     }
 
-    const results = await this.menuModel.aggregate<RouletteMenuResponseDto>([
+    let results = await this.menuModel.aggregate<RouletteMenuResponseDto>([
       { $match: filter },
       { $sample: { size: 6 } },
-      {
-        $project: {
-          _id: 0,
-          id: '$_id',
-          name: 1,
-          category: 1,
-          contexts: 1,
-          isBest: 1,
-          calorie: 1,
-          createdAt: 1,
-          updatedAt: 1,
-        },
-      },
+      { $project: MENU_PROJECTION },
     ]);
 
+    // fallback: 필터 결과가 0개일 때만 전체 랜덤
+    if (results.length === 0) {
+      results = await this.menuModel.aggregate<RouletteMenuResponseDto>([
+        { $sample: { size: 6 } },
+        { $project: MENU_PROJECTION },
+      ]);
+    }
+
+    // 항상 동일한 순서
     return results.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  // 룰렛 결과
+  // 룰렛 결과 저장
   async saveRouletteResult(body: RouletteResultDto): Promise<RouletteResult> {
-    return new this.rouletteResultModel(body).save();
+    const rouletteResult = new this.rouletteResultModel(body);
+    return rouletteResult.save();
   }
 
+  // 룰렛 결과 조회 (룸 기준)
   async getRouletteResultsByRoomId(roomId: string): Promise<RouletteResult[]> {
     return this.rouletteResultModel
       .find({ roomId })
@@ -140,7 +154,7 @@ export class MenusService {
     );
   }
 
-  // 찜 랭킹 3순위
+  // 찜 랭킹 TOP
   async getTopFavoriteMenus(limit = 3) {
     return this.menuModel
       .find({ favoriteCount: { $gt: 0 } })
