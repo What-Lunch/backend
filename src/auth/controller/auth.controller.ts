@@ -6,6 +6,7 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Headers,
   UnauthorizedException,
   Header,
@@ -23,15 +24,15 @@ export class AuthController {
   // 로그인
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  async login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
   }
 
   // 회원가입
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
-  async signup(@Body() dto: RegisterDto) {
-    return this.authService.signup(dto);
+  async signup(@Body() registerDto: RegisterDto) {
+    return this.authService.signup(registerDto);
   }
 
   // 내 정보 조회
@@ -39,36 +40,74 @@ export class AuthController {
   @Header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
   @Header('Pragma', 'no-cache')
   @Header('Expires', '0')
-  async me(@Headers('authorization') authHeader?: string) {
-    if (!authHeader) {
+  async getMyInfo(@Headers('authorization') authorization?: string) {
+    if (!authorization) {
       throw new UnauthorizedException('Authorization 헤더가 없습니다');
     }
 
-    const [type, token] = authHeader.split(' ');
+    const [scheme, accessToken] = authorization.split(' ');
 
-    if (type !== 'Bearer' || !token) {
+    if (scheme !== 'Bearer' || !accessToken) {
       throw new UnauthorizedException('Authorization 형식이 올바르지 않습니다');
     }
 
-    return this.authService.getMe(token);
+    return this.authService.getMe(accessToken);
   }
 
-  // 내 정보 수정 (닉네임 / 비밀번호 / 둘 다)
+  // 내 정보 수정 (닉네임 / 비밀번호 / 프로필 이미지 URL)
   @Patch('me')
   @Header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
   @Header('Pragma', 'no-cache')
   @Header('Expires', '0')
-  async updateMe(@Headers('authorization') authHeader: string, @Body() dto: UpdateMeDto) {
-    if (!authHeader) {
+  async updateMyInfo(
+    @Headers('authorization') authorization: string,
+    @Body() updateMeDto: UpdateMeDto,
+  ) {
+    if (!authorization) {
       throw new UnauthorizedException('Authorization 헤더가 없습니다');
     }
 
-    const [type, token] = authHeader.split(' ');
+    const [scheme, accessToken] = authorization.split(' ');
 
-    if (type !== 'Bearer' || !token) {
+    if (scheme !== 'Bearer' || !accessToken) {
       throw new UnauthorizedException('Authorization 형식이 올바르지 않습니다');
     }
 
-    return this.authService.updateMe(token, dto);
+    return this.authService.updateMe(accessToken, updateMeDto);
+  }
+
+  // 프로필 이미지 삭제 (기본 이미지로 초기화)
+  @Delete('me/profile-image')
+  async deleteProfileImage(@Headers('authorization') authorization: string) {
+    if (!authorization) {
+      throw new UnauthorizedException('Authorization 헤더가 없습니다');
+    }
+
+    const [scheme, accessToken] = authorization.split(' ');
+
+    if (scheme !== 'Bearer' || !accessToken) {
+      throw new UnauthorizedException('Authorization 형식이 올바르지 않습니다');
+    }
+
+    return this.authService.removeProfileImage(accessToken);
+  }
+
+  // 프로필 이미지 업로드용 presigned URL 발급
+  @Post('profile-image/presign')
+  async getProfileImagePresignedUrl(
+    @Headers('authorization') authorization: string,
+    @Body('contentType') contentType: string,
+  ) {
+    if (!authorization) {
+      throw new UnauthorizedException('Authorization 헤더가 없습니다');
+    }
+
+    const [scheme, accessToken] = authorization.split(' ');
+
+    if (scheme !== 'Bearer' || !accessToken) {
+      throw new UnauthorizedException('Authorization 형식이 올바르지 않습니다');
+    }
+
+    return this.authService.createProfileImagePresignedUrl(contentType);
   }
 }

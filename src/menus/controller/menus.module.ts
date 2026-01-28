@@ -15,5 +15,6 @@ import { RouletteResultSchema, RouletteResult } from '../schemas/menu-result.sch
   ],
   controllers: [MenusController],
   providers: [MenusService],
+  exports: [MenusService],
 })
 export class MenusModule {}

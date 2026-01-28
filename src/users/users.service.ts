@@ -7,7 +7,7 @@ import { User, UserDocument } from './schemas/user.schema';
 export type UserUpdateData = {
   nickname?: string;
   passwordHash?: string;
-  profileImage?: string;
+  profileImage?: string | null;
 };
 
 @Injectable()

@@ -1,9 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 import { MenuCategory } from '../enum/menu-category.enum';
 import { MenuContext } from '../enum/menu-context.enum';
-import { Types } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class Menu extends Document {
@@ -12,7 +11,7 @@ export class Menu extends Document {
 
   @Prop({
     type: String,
-    enum: ['korean', 'chinese', 'japanese', 'western', 'snack'],
+    enum: Object.values(MenuCategory),
     required: true,
   })
   category: MenuCategory;
@@ -29,9 +28,15 @@ export class Menu extends Document {
 
   @Prop()
   calorie?: number;
+
+  // 찜 수 (Top3 캐러셀 기준)
+  @Prop({ type: Number, default: 0, min: 0 })
+  favoriteCount!: number;
 }
 
 export const MenuSchema = SchemaFactory.createForClass(Menu);
+
+MenuSchema.index({ favoriteCount: -1 });
 
 MenuSchema.set('toJSON', {
   versionKey: false,

@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { MenusModule } from './menus/controller/menus.module';
 import { ChatModule } from './chat/chat.module';
 import { HealthModule } from './common/health/health.module';
+import { FavoritesModule } from './favorites/controller/favorite.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { HealthModule } from './common/health/health.module';
     UsersModule,
     AuthModule,
     MenusModule,
+    FavoritesModule,
     ChatModule,
   ],
 })
