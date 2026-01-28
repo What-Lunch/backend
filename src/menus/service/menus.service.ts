@@ -1,6 +1,6 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 
 import { Menu } from '../schemas/menu.schemas';
 import { RouletteMenuDto, RouletteMenuResponseDto } from '../dto/roulette-menu.dto';
@@ -10,7 +10,6 @@ import { RouletteResult } from '../schemas/menu-result.schemas';
 import { MenuContext } from '../enum/menu-context.enum';
 
 type CategoryInQuery = { $in: Exclude<MenuCategory, MenuCategory.ALL>[] };
-
 interface MenuFilter {
   category?: MenuCategory | CategoryInQuery;
   isBest?: boolean;
