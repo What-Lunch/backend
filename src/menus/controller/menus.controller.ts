@@ -34,6 +34,14 @@ export class MenusController {
     };
   }
 
+  // ============ 찜 TOP 메뉴 조회 ============
+  @Get('favorites/top')
+  async getTopFavoriteMenus(@Query('limit') limit?: string) {
+    const parsedLimit = limit ? Number(limit) : 3;
+
+    return this.menusService.getTopFavoriteMenus(parsedLimit);
+  }
+
   // ============ 룰렛 결과 저장 ============
   @Post('roulette-result')
   async saveRouletteResult(@Body() body: RouletteResultDto) {
