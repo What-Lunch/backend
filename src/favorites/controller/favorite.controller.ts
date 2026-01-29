@@ -2,7 +2,7 @@ import {
   Controller,
   Post,
   Delete,
-  Param,
+  Body,
   Get,
   Headers,
   UnauthorizedException,
@@ -19,8 +19,8 @@ export class FavoritesController {
     private readonly authService: AuthService,
   ) {}
 
-  @Post(':menuId')
-  async addFavorite(@Headers('authorization') auth: string, @Param('menuId') menuId: string) {
+  @Post('add')
+  async addFavorite(@Headers('authorization') auth: string, @Body('menuId') menuId: string) {
     const token = auth?.replace('Bearer ', '');
     if (!token) throw new UnauthorizedException();
 
@@ -28,8 +28,8 @@ export class FavoritesController {
     return this.favoritesService.addFavorite(user._id.toString(), menuId);
   }
 
-  @Delete(':menuId')
-  async removeFavorite(@Headers('authorization') auth: string, @Param('menuId') menuId: string) {
+  @Delete('remove')
+  async removeFavorite(@Headers('authorization') auth: string, @Body('menuId') menuId: string) {
     const token = auth?.replace('Bearer ', '');
     if (!token) throw new UnauthorizedException();
 
@@ -37,7 +37,7 @@ export class FavoritesController {
     return this.favoritesService.removeFavorite(user._id.toString(), menuId);
   }
 
-  // 캐시 차단 추가
+  // 내 찜 목록 조회
   @Get('list')
   @Header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
   @Header('Pragma', 'no-cache')

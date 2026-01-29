@@ -23,7 +23,11 @@ export class FavoritesService {
     const menuObjectId = new Types.ObjectId(menuId);
     const result = await this.favoriteModel.findOneAndUpdate(
       { userId: userObjectId, menuId: menuObjectId },
-      { $setOnInsert: { userId: userObjectId, menuId: menuObjectId } },
+      {
+        // 신규 생성이든 기존 갱신이든 createdAt을 현재로 설정
+        $set: { createdAt: new Date() },
+        $setOnInsert: { userId: userObjectId, menuId: menuObjectId },
+      },
       { upsert: true, new: false },
     );
 
@@ -64,8 +68,9 @@ export class FavoritesService {
     }
 
     return {
-      isFavorite: false,
-      removed: result.deletedCount === 1,
+      message: '찜 목록에서 삭제되었습니다.',
+      deletedId: menuId,
+      isDeleted: result.deletedCount === 1,
     };
   }
 
@@ -75,7 +80,11 @@ export class FavoritesService {
 
     return this.favoriteModel
       .find({ userId: userObjectId })
-      .populate('menuId')
+      .select('-userId -__v -updatedAt')
+      .populate({
+        path: 'menuId',
+        select: '-userId -__v',
+      })
       .sort({ createdAt: -1 })
       .exec();
   }
