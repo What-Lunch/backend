@@ -29,7 +29,12 @@ export class UsersService {
   }
 
   // 회원 생성
-  async create(userData: { nickname: string; email: string; passwordHash: string }) {
+  async create(userData: {
+    nickname: string;
+    email: string;
+    passwordHash?: string; // oauth 사용자도 고려
+    profileImage?: string | null;
+  }) {
     const user = new this.userModel(userData);
     return user.save();
   }
