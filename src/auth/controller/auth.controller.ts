@@ -28,6 +28,12 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  // OAuth 로그인 (Google)
+  @Post('oauth/google')
+  async googleLogin(@Body() dto: { idToken: string }) {
+    return this.authService.googleLogin(dto.idToken);
+  }
+
   // 회원가입
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
