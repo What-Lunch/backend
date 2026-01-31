@@ -8,6 +8,7 @@ import { MenusModule } from './menus/controller/menus.module';
 import { ChatModule } from './chat/chat.module';
 import { HealthModule } from './common/health/health.module';
 import { FavoritesModule } from './favorites/controller/favorite.module';
+import { FaqModule } from './faq/controller/faq.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { FavoritesModule } from './favorites/controller/favorite.module';
     MenusModule,
     FavoritesModule,
     ChatModule,
+    FaqModule,
   ],
 })
 export class AppModule {}
