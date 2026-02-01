@@ -7,107 +7,120 @@ import {
   Get,
   Patch,
   Delete,
-  Headers,
   UnauthorizedException,
   Header,
+  Res,
+  Req,
 } from '@nestjs/common';
+import type { Response, Request } from 'express';
 
 import { AuthService } from '../service/auth.service';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/signup.dto';
 import { UpdateMeDto } from '../dto/update.dto';
 
+interface AuthCookies {
+  accessToken?: string;
+  refreshToken?: string;
+}
+
+interface AuthRequest extends Request {
+  cookies: AuthCookies;
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // 로그인
+  // ============ 로그인 ============
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
+    return this.authService.login(loginDto, res);
   }
 
-  // 회원가입
+  // ============ 회원가입 ============
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
   async signup(@Body() registerDto: RegisterDto) {
     return this.authService.signup(registerDto);
   }
 
-  // 내 정보 조회
+  // ============ Refresh Token ============
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(@Req() req: AuthRequest, @Res({ passthrough: true }) res: Response) {
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token이 없습니다');
+    }
+
+    return this.authService.refresh(refreshToken, res);
+  }
+
+  // ============ 로그아웃 ============
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@Req() req: AuthRequest, @Res({ passthrough: true }) res: Response) {
+    const accessToken = req.cookies?.accessToken || '';
+    return this.authService.logout(accessToken, res);
+  }
+
+  // ============ 내 정보 조회 ============
   @Get('me')
   @Header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
   @Header('Pragma', 'no-cache')
   @Header('Expires', '0')
-  async getMyInfo(@Headers('authorization') authorization?: string) {
-    if (!authorization) {
-      throw new UnauthorizedException('Authorization 헤더가 없습니다');
-    }
+  async getMyInfo(@Req() req: AuthRequest) {
+    const accessToken = req.cookies?.accessToken;
 
-    const [scheme, accessToken] = authorization.split(' ');
-
-    if (scheme !== 'Bearer' || !accessToken) {
-      throw new UnauthorizedException('Authorization 형식이 올바르지 않습니다');
+    if (!accessToken) {
+      throw new UnauthorizedException('인증 토큰이 없습니다');
     }
 
     return this.authService.getMe(accessToken);
   }
 
-  // 내 정보 수정 (닉네임 / 비밀번호 / 프로필 이미지 URL)
+  // ============ 내 정보 수정 ============
   @Patch('me')
   @Header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
   @Header('Pragma', 'no-cache')
   @Header('Expires', '0')
-  async updateMyInfo(
-    @Headers('authorization') authorization: string,
-    @Body() updateMeDto: UpdateMeDto,
-  ) {
-    if (!authorization) {
-      throw new UnauthorizedException('Authorization 헤더가 없습니다');
+  async updateMe(@Req() req: AuthRequest, @Body() updateDto: UpdateMeDto) {
+    const accessToken = req.cookies?.accessToken;
+
+    if (!accessToken) {
+      throw new UnauthorizedException('인증 토큰이 없습니다');
     }
 
-    const [scheme, accessToken] = authorization.split(' ');
-
-    if (scheme !== 'Bearer' || !accessToken) {
-      throw new UnauthorizedException('Authorization 형식이 올바르지 않습니다');
-    }
-
-    return this.authService.updateMe(accessToken, updateMeDto);
+    return this.authService.updateMe(accessToken, updateDto);
   }
 
-  // 프로필 이미지 삭제 (기본 이미지로 초기화)
+  // ============ 프로필 이미지 삭제 ============
   @Delete('me/profile-image')
-  async deleteProfileImage(@Headers('authorization') authorization: string) {
-    if (!authorization) {
-      throw new UnauthorizedException('Authorization 헤더가 없습니다');
-    }
+  async deleteProfileImage(@Req() req: AuthRequest) {
+    const accessToken = req.cookies?.accessToken;
 
-    const [scheme, accessToken] = authorization.split(' ');
-
-    if (scheme !== 'Bearer' || !accessToken) {
-      throw new UnauthorizedException('Authorization 형식이 올바르지 않습니다');
+    if (!accessToken) {
+      throw new UnauthorizedException('인증 토큰이 없습니다');
     }
 
     return this.authService.removeProfileImage(accessToken);
   }
 
-  // 프로필 이미지 업로드용 presigned URL 발급
+  // ============ 프로필 이미지 Presigned URL ============
   @Post('profile-image/presign')
   async getProfileImagePresignedUrl(
-    @Headers('authorization') authorization: string,
+    @Req() req: AuthRequest,
     @Body('contentType') contentType: string,
   ) {
-    if (!authorization) {
-      throw new UnauthorizedException('Authorization 헤더가 없습니다');
+    const accessToken = req.cookies?.accessToken;
+
+    if (!accessToken) {
+      throw new UnauthorizedException('인증 토큰이 없습니다');
     }
 
-    const [scheme, accessToken] = authorization.split(' ');
-
-    if (scheme !== 'Bearer' || !accessToken) {
-      throw new UnauthorizedException('Authorization 형식이 올바르지 않습니다');
-    }
-
-    return this.authService.createProfileImagePresignedUrl(contentType);
+    return this.authService.createProfileImagePresignedUrl(accessToken, contentType);
   }
 }

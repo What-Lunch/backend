@@ -7,7 +7,7 @@ import { AuthService } from '../auth/service/auth.service';
 import { Token, TokenSchema } from '../auth/schemas/token.schema';
 
 @Module({
-  imports: [UsersModule, MongooseModule.forFeature([{ name: Token.name, schema: TokenSchema }])],
+  imports: [MongooseModule.forFeature([{ name: Token.name, schema: TokenSchema }]), UsersModule],
   controllers: [AuthController],
   providers: [AuthService],
   exports: [AuthService],

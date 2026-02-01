@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
+import { Types, Document } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class UserFavorite {
@@ -11,6 +11,8 @@ export class UserFavorite {
 }
 
 export const UserFavoriteSchema = SchemaFactory.createForClass(UserFavorite);
+
+export type UserFavoriteDocument = UserFavorite & Document;
 
 // 같은 메뉴 중복 찜 방지
 UserFavoriteSchema.index({ userId: 1, menuId: 1 }, { unique: true });

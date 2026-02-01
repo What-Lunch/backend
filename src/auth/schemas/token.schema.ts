@@ -11,6 +11,12 @@ export class Token {
 
   @Prop({ required: true, index: true })
   expiresAt!: Date;
+
+  @Prop({ required: false })
+  refreshToken?: string;
+
+  @Prop({ required: false })
+  refreshExpiresAt?: Date;
 }
 
 export type TokenDocument = HydratedDocument<Token>;

@@ -36,6 +36,8 @@ export class Menu extends Document {
 
 export const MenuSchema = SchemaFactory.createForClass(Menu);
 
+export type MenuDocument = Menu & Document;
+
 MenuSchema.index({ favoriteCount: -1 });
 
 MenuSchema.set('toJSON', {
