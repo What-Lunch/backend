@@ -21,6 +21,7 @@ import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/signup.dto';
 import { UpdateMeDto } from '../dto/update.dto';
 import { Token, TokenDocument } from '../schemas/token.schema';
+import { OAuth2Client, TokenPayload } from 'google-auth-library';
 
 @Injectable()
 export class AuthService {
@@ -95,6 +96,61 @@ export class AuthService {
     return this.validateTokenAndGetUser(accessToken);
   }
 
+  // ============ 구글 로그인 ============
+  async googleLogin(idToken: string) {
+    if (!idToken) {
+      throw new UnauthorizedException('idToken이 제공되지 않았습니다');
+    }
+    let payload: TokenPayload | undefined;
+    try {
+      const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+      const ticket = await client.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch {
+      throw new UnauthorizedException('유효하지 않은 Google idToken입니다');
+    }
+    if (!payload?.email) {
+      throw new UnauthorizedException('Google 계정 정보에 이메일이 없습니다');
+    }
+
+    // 사용자 조회 또는 생성
+    let user = await this.usersService.findByEmail(payload.email);
+    if (!user) {
+      user = await this.usersService.create({
+        email: payload.email,
+        nickname: payload.name || payload.email.split('@')[0],
+        profileImage: payload.picture || null,
+      });
+    }
+
+    // 자체 accessToken 발급 (기존 login과 동일)
+    const accessToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    try {
+      await this.tokenModel.findOneAndUpdate(
+        { userId: user._id },
+        { value: accessToken, expiresAt },
+        { upsert: true, new: true },
+      );
+    } catch {
+      throw new ServiceUnavailableException(
+        '로그인 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+      );
+    }
+
+    return {
+      accessToken,
+      expiresAt,
+      user: {
+        email: user.email,
+        nickname: user.nickname,
+        profileImage: user.profileImage,
+      },
+    };
+  }
   // ============ 회원가입 ============
   async signup(dto: RegisterDto, res: Response) {
     const existingUser = await this.usersService.findByEmail(dto.email);
@@ -145,7 +201,15 @@ export class AuthService {
   // ============ 로그인 ============
   async login(dto: LoginDto, res: Response) {
     const user = await this.usersService.findByEmail(dto.email);
+
     const isValid = user && (await bcrypt.compare(dto.password, user.passwordHash));
+
+
+    if (!user || !user.passwordHash) {
+      throw new UnauthorizedException('소셜 로그인 계정입니다');
+    }
+
+ 
 
     if (!isValid) {
       throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다');
