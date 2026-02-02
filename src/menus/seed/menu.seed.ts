@@ -6,12 +6,19 @@ export const menuSeedData = [
   {
     name: '김치찌개',
     category: MenuCategory.KOREAN,
-    contexts: [MenuContext.LUNCH, MenuContext.SOLO, MenuContext.STRESS],
+
+    contexts: [MenuContext.LUNCH, MenuContext.SOLO, MenuContext.LIGHT],
+  },
+  {
+    name: '된장찌개',
+    category: MenuCategory.KOREAN,
+    contexts: [MenuContext.LUNCH, MenuContext.DATE],
+    isBest: true,
   },
   {
     name: '비빔밥',
     category: MenuCategory.KOREAN,
-    contexts: [MenuContext.LUNCH, MenuContext.SOLO, MenuContext.LIGHT],
+    contexts: [MenuContext.SOLO, MenuContext.LIGHT],
   },
   {
     name: '삼겹살',
@@ -31,7 +38,7 @@ export const menuSeedData = [
   {
     name: '잡채',
     category: MenuCategory.KOREAN,
-    contexts: [MenuContext.DATE, MenuContext.CELEBRATION],
+    contexts: [MenuContext.DATE, MenuContext.LUNCH, MenuContext.LATE_NIGHT],
   },
   {
     name: '떡국',
@@ -48,12 +55,12 @@ export const menuSeedData = [
   {
     name: '짜장면',
     category: MenuCategory.CHINESE,
-    contexts: [MenuContext.LUNCH, MenuContext.SOLO],
+    contexts: [MenuContext.LUNCH, MenuContext.SOLO, MenuContext.LIGHT],
   },
   {
     name: '짬뽕',
     category: MenuCategory.CHINESE,
-    contexts: [MenuContext.STRESS, MenuContext.LATE_NIGHT],
+    contexts: [MenuContext.STRESS],
     isBest: true,
   },
   {
@@ -75,12 +82,13 @@ export const menuSeedData = [
   {
     name: '유산슬',
     category: MenuCategory.CHINESE,
-    contexts: [MenuContext.LUNCH, MenuContext.CELEBRATION],
+    contexts: [MenuContext.STRESS],
+    isBest: true,
   },
   {
     name: '깐풍기',
     category: MenuCategory.CHINESE,
-    contexts: [MenuContext.STRESS, MenuContext.CELEBRATION],
+    contexts: [MenuContext.DATE, MenuContext.CELEBRATION],
   },
   {
     name: '동파육',
@@ -92,7 +100,7 @@ export const menuSeedData = [
   {
     name: '초밥',
     category: MenuCategory.JAPANESE,
-    contexts: [MenuContext.DATE, MenuContext.LUNCH],
+    contexts: [MenuContext.DATE, MenuContext.LUNCH, MenuContext.LIGHT, MenuContext.CELEBRATION],
     isBest: true,
   },
   {
@@ -108,12 +116,13 @@ export const menuSeedData = [
   {
     name: '야키토리',
     category: MenuCategory.JAPANESE,
-    contexts: [MenuContext.DATE, MenuContext.CELEBRATION],
+    contexts: [MenuContext.SOLO, MenuContext.LUNCH, MenuContext.LIGHT],
   },
   {
     name: '타코야키',
     category: MenuCategory.JAPANESE,
-    contexts: [MenuContext.LUNCH, MenuContext.LIGHT, MenuContext.DATE],
+    contexts: [MenuContext.DATE, MenuContext.LUNCH, MenuContext.LATE_NIGHT],
+    isBest: true,
   },
   {
     name: '튀김',
@@ -135,7 +144,7 @@ export const menuSeedData = [
   {
     name: '파스타',
     category: MenuCategory.WESTERN,
-    contexts: [MenuContext.DATE, MenuContext.LUNCH],
+    contexts: [MenuContext.DATE, MenuContext.LUNCH, MenuContext.CELEBRATION, MenuContext.LIGHT],
   },
   {
     name: '리조또',
@@ -146,46 +155,51 @@ export const menuSeedData = [
   {
     name: '라자냐',
     category: MenuCategory.WESTERN,
-    contexts: [MenuContext.DATE, MenuContext.CELEBRATION],
+    contexts: [MenuContext.STRESS, MenuContext.LATE_NIGHT],
+    isBest: true,
   },
   {
     name: '샐러드',
     category: MenuCategory.WESTERN,
-    contexts: [MenuContext.SOLO, MenuContext.LIGHT],
+    contexts: [MenuContext.DATE, MenuContext.LUNCH, MenuContext.CELEBRATION],
+    isBest: true,
   },
   {
     name: '햄버거',
     category: MenuCategory.WESTERN,
-    contexts: [MenuContext.LUNCH, MenuContext.STRESS],
+    contexts: [MenuContext.SOLO, MenuContext.LIGHT],
   },
   {
     name: '피자',
     category: MenuCategory.WESTERN,
-    contexts: [MenuContext.STRESS, MenuContext.CELEBRATION],
-    isBest: true,
+    contexts: [MenuContext.LUNCH],
   },
   {
     name: '스테이크',
     category: MenuCategory.WESTERN,
-    contexts: [MenuContext.DATE, MenuContext.CELEBRATION],
-    isBest: true,
+    contexts: [
+      MenuContext.STRESS,
+      MenuContext.DATE,
+      MenuContext.CELEBRATION,
+      MenuContext.LATE_NIGHT,
+    ],
   },
   {
     name: '피시앤칩스',
     category: MenuCategory.WESTERN,
-    contexts: [MenuContext.LUNCH, MenuContext.LIGHT],
+    contexts: [MenuContext.SOLO, MenuContext.LUNCH, MenuContext.LIGHT],
   },
 
   // 스낵
   {
     name: '떡볶이',
     category: MenuCategory.SNACK,
-    contexts: [MenuContext.STRESS, MenuContext.LATE_NIGHT],
+    contexts: [MenuContext.STRESS, MenuContext.LUNCH, MenuContext.LIGHT],
   },
   {
     name: '김밥',
     category: MenuCategory.SNACK,
-    contexts: [MenuContext.SOLO, MenuContext.LIGHT, MenuContext.LUNCH],
+    contexts: [MenuContext.SOLO, MenuContext.LIGHT],
   },
   {
     name: '라면',
@@ -196,22 +210,23 @@ export const menuSeedData = [
   {
     name: '토스트',
     category: MenuCategory.SNACK,
-    contexts: [MenuContext.LUNCH, MenuContext.LIGHT],
+    contexts: [MenuContext.SOLO, MenuContext.LUNCH, MenuContext.LATE_NIGHT],
+    isBest: true,
   },
   {
     name: '핫도그',
     category: MenuCategory.SNACK,
-    contexts: [MenuContext.LUNCH, MenuContext.STRESS],
+    contexts: [MenuContext.STRESS],
   },
   {
     name: '만두',
     category: MenuCategory.SNACK,
-    contexts: [MenuContext.SOLO, MenuContext.LATE_NIGHT],
+    contexts: [MenuContext.SOLO, MenuContext.LUNCH, MenuContext.LIGHT],
   },
   {
     name: '닭강정',
     category: MenuCategory.SNACK,
-    contexts: [MenuContext.STRESS, MenuContext.CELEBRATION],
+    contexts: [MenuContext.DATE, MenuContext.LUNCH, MenuContext.LIGHT],
   },
   {
     name: '순대',

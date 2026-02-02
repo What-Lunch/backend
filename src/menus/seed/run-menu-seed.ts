@@ -13,7 +13,6 @@ async function bootstrap() {
 
   await menuModel.deleteMany({});
   await menuModel.insertMany(menuSeedData);
-  console.log('✔️ Menu seed data inserted');
 
   await app.close();
 }
