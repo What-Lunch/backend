@@ -36,16 +36,17 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    return this.authService.login(loginDto, res);
+    const result = await this.authService.login(loginDto, res);
+    return result;
   }
 
   // ============ 회원가입 ============
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
-  async signup(@Body() registerDto: RegisterDto) {
-    return this.authService.signup(registerDto);
+  async signup(@Body() signupDto: RegisterDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.signup(signupDto, res);
+    return result;
   }
-
   // ============ Refresh Token ============
   @Post('refresh')
   @HttpCode(HttpStatus.OK)

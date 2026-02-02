@@ -46,7 +46,7 @@ export class AuthService {
     const isProduction = process.env.NODE_ENV === 'production';
 
     res.cookie('accessToken', accessToken, {
-      httpOnly: true,
+      httpOnly: false,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000,
@@ -77,37 +77,17 @@ export class AuthService {
 
   // ============ WebSocket용 토큰 검증 ============
   async verifyToken(accessToken: string) {
-    try {
-      if (!accessToken) {
-        return null;
-      }
+    const tokenDoc = await this.tokenModel.findOne({
+      value: accessToken,
+      expiresAt: { $gt: new Date() },
+    });
 
-      const token = await this.tokenModel.findOne({ value: accessToken });
-
-      if (!token) {
-        return null;
-      }
-
-      if (token.expiresAt < new Date()) {
-        return null;
-      }
-
-      const user = await this.usersService.findById(token.userId);
-
-      if (!user) {
-        return null;
-      }
-
-      return {
-        id: user._id.toString(),
-        email: user.email,
-        nickname: user.nickname,
-        profileImage: user.profileImage,
-      };
-    } catch (error) {
-      console.error('[AuthService] verifyToken 오류:', error);
+    if (!tokenDoc) {
       return null;
     }
+
+    const user = await this.usersService.findById(tokenDoc.userId.toString());
+    return user;
   }
 
   // ============ 액세스 토큰 검증 ============
@@ -116,7 +96,7 @@ export class AuthService {
   }
 
   // ============ 회원가입 ============
-  async signup(dto: RegisterDto) {
+  async signup(dto: RegisterDto, res: Response) {
     const existingUser = await this.usersService.findByEmail(dto.email);
     if (existingUser) {
       throw new BadRequestException('이미 가입된 이메일입니다');
@@ -130,15 +110,38 @@ export class AuthService {
       passwordHash: hashedPassword,
     });
 
+    const { accessToken, refreshToken, accessExpiresAt, refreshExpiresAt } =
+      this.generateTokenValue();
+
+    try {
+      await this.tokenModel.findOneAndUpdate(
+        { userId: user._id },
+        {
+          value: accessToken,
+          expiresAt: accessExpiresAt,
+          refreshToken,
+          refreshExpiresAt,
+        },
+        { upsert: true, new: true },
+      );
+    } catch {
+      throw new ServiceUnavailableException(
+        '회원가입 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+      );
+    }
+
+    this.setAuthCookies(res, accessToken, refreshToken);
+
     return {
-      message: '회원가입이 완료되었습니다',
+      accessToken,
       user: {
+        id: user._id.toString(),
         email: user.email,
         nickname: user.nickname,
+        profileImage: user.profileImage || null,
       },
     };
   }
-
   // ============ 로그인 ============
   async login(dto: LoginDto, res: Response) {
     const user = await this.usersService.findByEmail(dto.email);
@@ -169,12 +172,12 @@ export class AuthService {
     }
 
     this.setAuthCookies(res, accessToken, refreshToken);
-
     return {
       user: {
+        id: user._id.toString(),
         email: user.email,
         nickname: user.nickname,
-        profileImage: user.profileImage,
+        profileImage: user.profileImage || null,
       },
     };
   }
@@ -213,6 +216,7 @@ export class AuthService {
 
     return {
       user: {
+        id: user._id.toString(),
         email: user.email,
         nickname: user.nickname,
         profileImage: user.profileImage,
@@ -244,29 +248,25 @@ export class AuthService {
 
   // ============ 내 정보 조회 ============
   async getMe(accessToken: string) {
-    if (!accessToken) {
-      throw new UnauthorizedException('인증 토큰이 없습니다');
-    }
-
     const tokenDoc = await this.tokenModel.findOne({
       value: accessToken,
       expiresAt: { $gt: new Date() },
     });
 
-    if (!tokenDoc || tokenDoc.expiresAt < new Date()) {
-      throw new UnauthorizedException('유효하지 않거나 만료된 토큰입니다');
+    if (!tokenDoc) {
+      throw new UnauthorizedException('유효하지 않은 토큰입니다');
     }
 
     const user = await this.usersService.findById(tokenDoc.userId.toString());
-
     if (!user) {
       throw new UnauthorizedException('사용자를 찾을 수 없습니다');
     }
 
     return {
+      id: user._id.toString(),
       email: user.email,
       nickname: user.nickname,
-      profileImage: user.profileImage,
+      profileImage: user.profileImage || null,
     };
   }
 
@@ -302,9 +302,10 @@ export class AuthService {
     await user.save();
 
     return {
+      id: user._id.toString(),
       email: user.email,
       nickname: user.nickname,
-      profileImage: user.profileImage,
+      profileImage: user.profileImage || null,
     };
   }
 
@@ -326,9 +327,10 @@ export class AuthService {
     await user.save();
 
     return {
+      id: user._id.toString(),
       email: user.email,
       nickname: user.nickname,
-      profileImage: user.profileImage,
+      profileImage: user.profileImage || null,
     };
   }
 
