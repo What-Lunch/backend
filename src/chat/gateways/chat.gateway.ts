@@ -59,11 +59,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleConnection(client: AuthenticatedSocket): Promise<void> {
     try {
       const cookies = client.handshake.headers.cookie;
-      const accessToken = cookies
+      let accessToken = cookies
         ?.split('; ')
         .find((c) => c.startsWith('accessToken='))
         ?.split('=')[1];
 
+      if (accessToken) {
+        try {
+          accessToken = decodeURIComponent(accessToken);
+        } catch (error) {
+          console.error('[Gateway] 토큰 디코딩 오류:', error);
+          accessToken = undefined;
+        }
+      }
       if (!accessToken) {
         client.emit('joinError', { reason: 'NO_TOKEN' });
         client.disconnect();
@@ -81,8 +89,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // 사용자 정보 저장
       client.user = {
-        id: user._id.toString(),
         ...user,
+        id: user._id.toString(),
         profileImage: user.profileImage ?? undefined,
       };
 

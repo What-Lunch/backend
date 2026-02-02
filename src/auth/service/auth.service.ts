@@ -46,7 +46,7 @@ export class AuthService {
     const isProduction = process.env.NODE_ENV === 'production';
 
     res.cookie('accessToken', accessToken, {
-      httpOnly: false,
+      httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000,
@@ -145,6 +145,10 @@ export class AuthService {
   // ============ 로그인 ============
   async login(dto: LoginDto, res: Response) {
     const user = await this.usersService.findByEmail(dto.email);
+    if (!user) {
+      throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다');
+    }
+
     const isValid = user && (await bcrypt.compare(dto.password, user.passwordHash));
 
     if (!isValid) {
@@ -189,7 +193,7 @@ export class AuthService {
 
     const tokenDoc = await this.tokenModel.findOne({ refreshToken });
 
-    if (!tokenDoc || tokenDoc.refreshExpiresAt! < new Date()) {
+    if (!tokenDoc || !tokenDoc.refreshExpiresAt || tokenDoc.refreshExpiresAt < new Date()) {
       throw new UnauthorizedException('리프레시 토큰이 유효하지 않습니다');
     }
 
@@ -230,7 +234,7 @@ export class AuthService {
     }
 
     res.clearCookie('accessToken', {
-      httpOnly: true,
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',

@@ -50,7 +50,7 @@ export const menuSeedData = [
   {
     name: '짜장면',
     category: MenuCategory.CHINESE,
-    contexts: [MenuContext.LUNCH, MenuContext.SOLO, MenuContext.LIGHT, MenuContext.LIGHT],
+    contexts: [MenuContext.LUNCH, MenuContext.SOLO, MenuContext.LIGHT],
   },
   {
     name: '짬뽕',
@@ -194,7 +194,7 @@ export const menuSeedData = [
   {
     name: '김밥',
     category: MenuCategory.SNACK,
-    contexts: [MenuContext.SOLO, MenuContext.LIGHT, MenuContext.LIGHT],
+    contexts: [MenuContext.SOLO, MenuContext.LIGHT],
   },
   {
     name: '순대',
