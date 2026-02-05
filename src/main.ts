@@ -1,17 +1,18 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express'; // [1] 타입 추가
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.set('trust proxy', 1); // 프록스 설정
   app.use(cookieParser());
 
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // DTO에 없는 속성 제거
-      forbidNonWhitelisted: true, // DTO에 없는 속성 → 에러
+      whitelist: true,
+      forbidNonWhitelisted: true,
       transform: true,
     }),
   );
@@ -22,8 +23,8 @@ async function bootstrap() {
 
       if (
         !origin ||
-        (typeof origin === 'string' &&
-          (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')))
+        allowedOrigins.includes(origin) ||
+        (typeof origin === 'string' && origin.endsWith('.vercel.app'))
       ) {
         callback(null, true);
       } else {
