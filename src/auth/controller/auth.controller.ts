@@ -40,13 +40,10 @@ export class AuthController {
     return result;
   }
 
-
-
-
   // OAuth 로그인 (Google)
   @Post('oauth/google')
-  async googleLogin(@Body() dto: { idToken: string }) {
-    return this.authService.googleLogin(dto.idToken);
+  async googleLogin(@Body() dto: { idToken: string }, @Res({ passthrough: true }) res: Response) {
+    return this.authService.googleLogin(dto.idToken, res);
   }
 
   // ============ 회원가입 ============

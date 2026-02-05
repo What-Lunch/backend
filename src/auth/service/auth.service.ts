@@ -43,7 +43,7 @@ export class AuthService {
     };
   }
 
-  private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
+  private setAuthCookies(res: Response, accessToken: string, refreshToken: string | null) {
     const isProduction = process.env.NODE_ENV === 'production';
 
     res.cookie('accessToken', accessToken, {
@@ -54,13 +54,15 @@ export class AuthService {
       path: '/',
     });
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: isProduction ? 'none' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/',
-    });
+    if (refreshToken) {
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: isProduction ? 'none' : 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/',
+      });
+    }
   }
 
   // ============ 토큰 검증 및 사용자 조회 ============
@@ -97,7 +99,7 @@ export class AuthService {
   }
 
   // ============ 구글 로그인 ============
-  async googleLogin(idToken: string) {
+  async googleLogin(idToken: string, res: Response) {
     if (!idToken) {
       throw new UnauthorizedException('idToken이 제공되지 않았습니다');
     }
@@ -139,6 +141,9 @@ export class AuthService {
         '로그인 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
       );
     }
+
+    // ★★★ 쿠키 설정 추가 ★★★
+    this.setAuthCookies(res, accessToken, null); // refreshToken 필요시 추가 발급
 
     return {
       accessToken,
