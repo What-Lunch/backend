@@ -31,6 +31,7 @@ interface AuthenticatedSocket extends Socket {
   cors: {
     origin: ['https://whatlunch.vercel.app'],
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   },
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
