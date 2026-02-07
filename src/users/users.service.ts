@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
@@ -9,6 +9,7 @@ export type UserUpdateData = {
   passwordHash?: string;
   profileImage?: string | null;
 };
+const MAX_FOOD_DOTS = 9;
 
 @Injectable()
 export class UsersService {
@@ -52,5 +53,64 @@ export class UsersService {
     }
 
     return updatedUser;
+  }
+
+  // 내 음식 도트 목록 조회
+  async getMyFoodDots(userId: Types.ObjectId | string): Promise<string[]> {
+    const user = await this.userModel.findById(userId);
+
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다');
+    }
+
+    return user.selectedFoodDotIds ?? [];
+  }
+
+  // 음식 도트 추가
+  async addFoodDot(userId: Types.ObjectId | string, dotId: string): Promise<string[]> {
+    const user = await this.userModel.findById(userId);
+
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다');
+    }
+
+    // 초기값 보장
+    if (!user.selectedFoodDotIds) {
+      user.selectedFoodDotIds = [];
+    }
+
+    // 이미 선택된 경우 그대로 반환
+    if (user.selectedFoodDotIds.includes(dotId)) {
+      return user.selectedFoodDotIds;
+    }
+
+    // 최대 개수 제한
+    if (user.selectedFoodDotIds.length >= MAX_FOOD_DOTS) {
+      throw new BadRequestException(`음식 도트는 최대 ${MAX_FOOD_DOTS}개까지 선택할 수 있습니다`);
+    }
+
+    user.selectedFoodDotIds.push(dotId);
+    await user.save();
+
+    return user.selectedFoodDotIds;
+  }
+
+  // 음식 도트 제거
+  async removeFoodDot(userId: Types.ObjectId | string, dotId: string): Promise<string[]> {
+    const user = await this.userModel.findById(userId);
+
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다');
+    }
+
+    if (!user.selectedFoodDotIds) {
+      return [];
+    }
+
+    user.selectedFoodDotIds = user.selectedFoodDotIds.filter((id) => id !== dotId);
+
+    await user.save();
+
+    return user.selectedFoodDotIds;
   }
 }
