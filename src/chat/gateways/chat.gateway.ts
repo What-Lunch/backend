@@ -27,7 +27,7 @@ interface AuthenticatedSocket extends Socket {
 @Injectable()
 @WebSocketGateway({
   path: '/socket.io',
-  transports: ['websocket'],
+  transports: ['websocket', 'polling'],
   cors: {
     origin: [
       'https://whatlunch.vercel.app',
@@ -36,6 +36,7 @@ interface AuthenticatedSocket extends Socket {
     ],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    exposedHeaders: ['Set-Cookie'],
   },
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -64,32 +65,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleConnection(client: AuthenticatedSocket): Promise<void> {
     try {
       const cookies = client.handshake.headers.cookie;
+
       let accessToken = cookies
         ?.split('; ')
         .find((c) => c.startsWith('accessToken='))
-        ?.split('=')[1];
+        ?.split('=')
+        .slice(1)
+        .join('=');
 
-      if (!accessToken && typeof client.handshake.auth?.token === 'string') {
+      if (typeof client.handshake.auth?.token === 'string') {
         accessToken = client.handshake.auth.token;
-        if (accessToken) {
-          try {
-            accessToken = decodeURIComponent(accessToken);
-          } catch (error) {
-            console.error('[Gateway] 토큰 디코딩 오류:', error);
-            accessToken = undefined;
-          }
-        }
       }
 
-      if (accessToken) {
-        try {
-          accessToken = decodeURIComponent(accessToken);
-        } catch (error) {
-          console.error('[Gateway] 토큰 디코딩 오류:', error);
-          accessToken = undefined;
-        }
-      }
       if (!accessToken) {
+        console.error('[Gateway] 토큰 없음 - 연결 거부');
         client.emit('joinError', { reason: 'NO_TOKEN' });
         client.disconnect();
         return;
