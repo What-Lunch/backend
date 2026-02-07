@@ -29,7 +29,11 @@ interface AuthenticatedSocket extends Socket {
   path: '/socket.io',
   transports: ['websocket'],
   cors: {
-    origin: ['https://whatlunch.vercel.app'],
+    origin: [
+      'https://whatlunch.vercel.app',
+      'http://localhost:3000',
+      /https:\/\/whatlunch-.*\.vercel\.app$/,
+    ],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   },
