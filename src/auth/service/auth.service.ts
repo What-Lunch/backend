@@ -44,21 +44,19 @@ export class AuthService {
   }
 
   private setAuthCookies(res: Response, accessToken: string, refreshToken: string | null) {
-    const isProduction = process.env.NODE_ENV === 'production';
-
     res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: isProduction ? 'none' : 'lax',
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000,
       path: '/',
     });
 
     if (refreshToken) {
       res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: true,
-        sameSite: isProduction ? 'none' : 'lax',
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
         path: '/',
       });
@@ -127,13 +125,19 @@ export class AuthService {
       });
     }
 
-    // 자체 accessToken 발급 (기존 login과 동일)
-    const accessToken = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    // accessToken과 refreshToken 발급
+    const { accessToken, refreshToken, accessExpiresAt, refreshExpiresAt } =
+      this.generateTokenValue();
+
     try {
       await this.tokenModel.findOneAndUpdate(
         { userId: user._id },
-        { value: accessToken, expiresAt },
+        {
+          value: accessToken,
+          expiresAt: accessExpiresAt,
+          refreshToken,
+          refreshExpiresAt,
+        },
         { upsert: true, new: true },
       );
     } catch {
@@ -142,16 +146,18 @@ export class AuthService {
       );
     }
 
-    // ★★★ 쿠키 설정 추가 ★★★
-    this.setAuthCookies(res, accessToken, null); // refreshToken 필요시 추가 발급
+    // 쿠키 설정
+    this.setAuthCookies(res, accessToken, refreshToken);
 
+    // 응답 형식을 다른 메서드와 일관성 있게
     return {
       accessToken,
-      expiresAt,
+      refreshToken,
       user: {
+        id: user._id.toString(),
         email: user.email,
         nickname: user.nickname,
-        profileImage: user.profileImage,
+        profileImage: user.profileImage || null,
       },
     };
   }
@@ -202,6 +208,18 @@ export class AuthService {
       },
     };
   }
+
+  generateTokens() {
+    const { accessToken, refreshToken, accessExpiresAt, refreshExpiresAt } =
+      this.generateTokenValue();
+    return {
+      accessToken,
+      refreshToken,
+      accessExpiresAt,
+      refreshExpiresAt,
+    };
+  }
+
   // ============ 로그인 ============
   async login(dto: LoginDto, res: Response) {
     const user = await this.usersService.findByEmail(dto.email);
@@ -216,8 +234,7 @@ export class AuthService {
       throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다');
     }
 
-    const { accessToken, refreshToken, accessExpiresAt, refreshExpiresAt } =
-      this.generateTokenValue();
+    const { accessToken, refreshToken, accessExpiresAt, refreshExpiresAt } = this.generateTokens();
 
     try {
       await this.tokenModel.findOneAndUpdate(
@@ -237,7 +254,10 @@ export class AuthService {
     }
 
     this.setAuthCookies(res, accessToken, refreshToken);
+
     return {
+      accessToken,
+      refreshToken,
       user: {
         id: user._id.toString(),
         email: user.email,
@@ -297,14 +317,14 @@ export class AuthService {
     res.clearCookie('accessToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'none',
       path: '/',
     });
 
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'none',
       path: '/',
     });
 
