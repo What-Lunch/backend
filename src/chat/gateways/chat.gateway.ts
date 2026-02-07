@@ -29,13 +29,8 @@ interface AuthenticatedSocket extends Socket {
   path: '/socket.io',
   transports: ['websocket'],
   cors: {
-    origin: [
-      'https://whatlunch.vercel.app',
-      'http://localhost:3000',
-      /https:\/\/whatlunch-.*\.vercel\.app$/,
-    ],
+    origin: ['https://whatlunch.vercel.app'],
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   },
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -68,18 +63,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         ?.split('; ')
         .find((c) => c.startsWith('accessToken='))
         ?.split('=')[1];
-
-      if (!accessToken && typeof client.handshake.auth?.token === 'string') {
-        accessToken = client.handshake.auth.token;
-        if (accessToken) {
-          try {
-            accessToken = decodeURIComponent(accessToken);
-          } catch (error) {
-            console.error('[Gateway] 토큰 디코딩 오류:', error);
-            accessToken = undefined;
-          }
-        }
-      }
 
       if (accessToken) {
         try {

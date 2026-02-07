@@ -19,11 +19,7 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
-      const allowedOrigins = [
-        'http://localhost:3000',
-        'https://whatlunch.vercel.app',
-        /https:\/\/whatlunch-.*\.vercel\.app$/,
-      ];
+      const allowedOrigins = ['http://localhost:3000', 'https://whatlunch.vercel.app'];
 
       if (
         !origin ||
