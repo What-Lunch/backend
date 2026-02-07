@@ -69,6 +69,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         .find((c) => c.startsWith('accessToken='))
         ?.split('=')[1];
 
+      if (!accessToken && typeof client.handshake.auth?.token === 'string') {
+        accessToken = client.handshake.auth.token;
+        if (accessToken) {
+          try {
+            accessToken = decodeURIComponent(accessToken);
+          } catch (error) {
+            console.error('[Gateway] 토큰 디코딩 오류:', error);
+            accessToken = undefined;
+          }
+        }
+      }
+
       if (accessToken) {
         try {
           accessToken = decodeURIComponent(accessToken);
