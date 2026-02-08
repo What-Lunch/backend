@@ -4,7 +4,7 @@ import { MenuContext } from '../enum/menu-context.enum';
 export const menuSeedData = [
   // 한식
   {
-    name: '김치찌개',
+    name: '국밥',
     category: MenuCategory.KOREAN,
 
     contexts: [MenuContext.LUNCH, MenuContext.SOLO, MenuContext.LIGHT],

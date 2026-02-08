@@ -8,7 +8,7 @@ export class User {
   @Prop({ required: true, unique: true, lowercase: true, trim: true })
   email!: string;
 
-  @Prop({ type: String, required: false, default: null }) // 타입 명시
+  @Prop({ type: String, required: false, default: null })
   passwordHash?: string | null;
 
   @Prop({ required: true, trim: true })
@@ -16,6 +16,9 @@ export class User {
 
   @Prop({ type: String, default: null })
   profileImage!: string | null;
+
+  @Prop({ type: [String], default: [] })
+  selectedFoodDotIds!: string[];
 
   createdAt!: Date;
   updatedAt!: Date;
