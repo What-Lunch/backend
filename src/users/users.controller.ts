@@ -13,6 +13,7 @@ import type { Request } from 'express';
 
 import { AuthService } from '../auth/service/auth.service';
 import { UsersService } from './users.service';
+import { AddFoodDotDto } from './dto/add-food-dot.dto';
 
 interface AuthCookies {
   accessToken?: string;
@@ -38,17 +39,14 @@ export class UsersController {
     }
 
     const user = await this.authService.verifyAccessToken(accessToken);
-
-    if (!user) {
-      throw new UnauthorizedException('사용자를 찾을 수 없습니다');
-    }
-
     return user._id.toString();
   }
 
   // 내 음식 도트 목록 조회
   @Get('me/food-dots')
   @Header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   async getMyFoodDots(@Req() req: AuthRequest) {
     const userId = await this.extractUserId(req);
     return this.usersService.getMyFoodDots(userId);
@@ -56,9 +54,9 @@ export class UsersController {
 
   // 음식 도트 추가
   @Post('me/food-dots')
-  async addFoodDot(@Req() req: AuthRequest, @Body('dotId') dotId: string) {
+  async addFoodDot(@Req() req: AuthRequest, @Body() body: AddFoodDotDto) {
     const userId = await this.extractUserId(req);
-    return this.usersService.addFoodDot(userId, dotId);
+    return this.usersService.addFoodDot(userId, body.dotId);
   }
 
   // 음식 도트 제거

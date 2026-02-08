@@ -9,6 +9,7 @@ export type UserUpdateData = {
   passwordHash?: string;
   profileImage?: string | null;
 };
+
 const MAX_FOOD_DOTS = 9;
 
 @Injectable()
@@ -25,7 +26,7 @@ export class UsersService {
   }
 
   // ID로 유저 조회
-  async findById(userId: Types.ObjectId | string) {
+  findById(userId: Types.ObjectId | string) {
     return this.userModel.findById(userId).exec();
   }
 
@@ -33,7 +34,7 @@ export class UsersService {
   async create(userData: {
     nickname: string;
     email: string;
-    passwordHash?: string; // oauth 사용자도 고려
+    passwordHash?: string;
     profileImage?: string | null;
   }) {
     const user = new this.userModel(userData);
@@ -45,7 +46,7 @@ export class UsersService {
     const updatedUser = await this.userModel.findByIdAndUpdate(
       userId,
       { $set: updateData },
-      { new: true }, // 업데이트된 문서 반환
+      { new: true },
     );
 
     if (!updatedUser) {
@@ -57,7 +58,7 @@ export class UsersService {
 
   // 내 음식 도트 목록 조회
   async getMyFoodDots(userId: Types.ObjectId | string): Promise<string[]> {
-    const user = await this.userModel.findById(userId);
+    const user = await this.userModel.findById(userId).select('selectedFoodDotIds');
 
     if (!user) {
       throw new NotFoundException('사용자를 찾을 수 없습니다');
@@ -68,49 +69,50 @@ export class UsersService {
 
   // 음식 도트 추가
   async addFoodDot(userId: Types.ObjectId | string, dotId: string): Promise<string[]> {
-    const user = await this.userModel.findById(userId);
+    const updatedUser = await this.userModel.findOneAndUpdate(
+      {
+        _id: userId,
+        $expr: {
+          $lt: [{ $size: { $ifNull: ['$selectedFoodDotIds', []] } }, MAX_FOOD_DOTS],
+        },
+      },
+      {
+        $addToSet: { selectedFoodDotIds: dotId },
+      },
+      {
+        new: true,
+      },
+    );
 
-    if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다');
-    }
+    if (!updatedUser) {
+      const exists = await this.userModel.exists({ _id: userId });
 
-    // 초기값 보장
-    if (!user.selectedFoodDotIds) {
-      user.selectedFoodDotIds = [];
-    }
+      if (!exists) {
+        throw new NotFoundException('사용자를 찾을 수 없습니다');
+      }
 
-    // 이미 선택된 경우 그대로 반환
-    if (user.selectedFoodDotIds.includes(dotId)) {
-      return user.selectedFoodDotIds;
-    }
-
-    // 최대 개수 제한
-    if (user.selectedFoodDotIds.length >= MAX_FOOD_DOTS) {
       throw new BadRequestException(`음식 도트는 최대 ${MAX_FOOD_DOTS}개까지 선택할 수 있습니다`);
     }
 
-    user.selectedFoodDotIds.push(dotId);
-    await user.save();
-
-    return user.selectedFoodDotIds;
+    return updatedUser.selectedFoodDotIds ?? [];
   }
 
   // 음식 도트 제거
   async removeFoodDot(userId: Types.ObjectId | string, dotId: string): Promise<string[]> {
-    const user = await this.userModel.findById(userId);
+    const updatedUser = await this.userModel.findByIdAndUpdate(
+      userId,
+      {
+        $pull: { selectedFoodDotIds: dotId },
+      },
+      {
+        new: true,
+      },
+    );
 
-    if (!user) {
+    if (!updatedUser) {
       throw new NotFoundException('사용자를 찾을 수 없습니다');
     }
 
-    if (!user.selectedFoodDotIds) {
-      return [];
-    }
-
-    user.selectedFoodDotIds = user.selectedFoodDotIds.filter((id) => id !== dotId);
-
-    await user.save();
-
-    return user.selectedFoodDotIds;
+    return updatedUser.selectedFoodDotIds ?? [];
   }
 }
