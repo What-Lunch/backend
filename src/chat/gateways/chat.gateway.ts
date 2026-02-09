@@ -366,13 +366,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!user) return;
 
       // 서버에서 필터에 맞는 메뉴 로드
-
       function toEnumArr<T extends string>(
         arr: unknown,
         EnumObj: Record<string, T>,
       ): T[] | undefined {
         if (!Array.isArray(arr)) return undefined;
-        return arr.map((v) => EnumObj[v as keyof typeof EnumObj]).filter(Boolean);
+        const enumValues = Object.values(EnumObj) as T[];
+        return (arr as unknown[])
+          .map((v) => (enumValues.includes(v as T) ? (v as T) : undefined))
+          .filter(Boolean) as T[];
       }
       const safeFilters: { category?: MenuCategory[]; context?: MenuContext[] } = {
         category: toEnumArr<MenuCategory>(payload.filters?.category, MenuCategory),
