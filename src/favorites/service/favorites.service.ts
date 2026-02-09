@@ -41,8 +41,8 @@ export class FavoritesService {
 
     const favorites = await this.userFavoriteModel
       .find({ userId })
-      .populate<{ menuId: MenuDocument }>('menuId')
-      .lean<Array<UserFavoriteDocument & { menuId?: MenuDocument }>>();
+      .populate<{ menuId: Pick<Menu, 'category'> }>('menuId', 'category')
+      .lean<Array<UserFavorite & { menuId?: Pick<Menu, 'category'> }>>();
 
     const categories = favorites
       .map((fav) => fav.menuId?.category)
