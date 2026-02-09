@@ -55,4 +55,14 @@ export class FavoritesController {
     const token = this.getAccessToken(req);
     return this.favoritesService.getFavorites(token);
   }
+
+  // 찜 기반 선호도 분석 조회
+  @Get('preference')
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
+  async getMyPreference(@Req() req: AuthRequest) {
+    const token = this.getAccessToken(req);
+    return this.favoritesService.getPreference(token);
+  }
 }

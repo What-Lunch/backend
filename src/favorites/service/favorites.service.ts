@@ -4,6 +4,12 @@ import { Model, Types } from 'mongoose';
 import { UserFavorite, UserFavoriteDocument } from '../schemas/user-favorite.schema';
 import { Token, TokenDocument } from '../../auth/schemas/token.schema';
 import { Menu, MenuDocument } from '../../menus/schemas/menu.schemas';
+import {
+  analyzeCategoryPreference,
+  PreferenceResult,
+} from '../../menus/service/category-preference';
+
+import { MenuCategory } from 'src/menus/enum/menu-category.enum';
 
 @Injectable()
 export class FavoritesService {
@@ -27,6 +33,22 @@ export class FavoritesService {
     }
 
     return tokenDoc.userId.toString();
+  }
+
+  // 사용자 찜한 메뉴 카테고리 성향 분석
+  async getPreference(accessToken: string): Promise<PreferenceResult> {
+    const userId = await this.validateTokenAndGetUserId(accessToken);
+
+    const favorites = await this.userFavoriteModel
+      .find({ userId })
+      .populate<{ menuId: Pick<Menu, 'category'> }>('menuId', 'category')
+      .lean<Array<UserFavorite & { menuId?: Pick<Menu, 'category'> }>>();
+
+    const categories = favorites
+      .map((fav) => fav.menuId?.category)
+      .filter((c): c is MenuCategory => c !== undefined);
+
+    return analyzeCategoryPreference(categories);
   }
 
   async getFavorites(accessToken: string) {
