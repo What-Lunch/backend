@@ -88,7 +88,15 @@ export class AuthService {
     }
 
     const user = await this.usersService.findById(tokenDoc.userId.toString());
-    return user;
+    if (!user) return null;
+
+    // 응답 형식을 다른 메서드와 일관성 있게
+    return {
+      _id: user._id,
+      email: user.email,
+      nickname: user.nickname,
+      profileImage: user.profileImage ?? undefined,
+    };
   }
 
   // ============ 액세스 토큰 검증 ============

@@ -141,14 +141,24 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ): Promise<void> {
     try {
       const user = client.user;
-
       if (!user) {
         client.emit('joinError', { reason: 'UNAUTHORIZED' });
         return;
       }
 
+      // 이미 방에 속해있는지 확인
+      if (client.rooms.has(payload.roomCode)) {
+        return;
+      }
+
       // 방에 입장
       await client.join(payload.roomCode);
+
+      // 입장 시스템 메시지 (한 번만 실행됨)
+      this.server.to(payload.roomCode).emit('systemMessage', {
+        message: `${user.nickname}님이 입장했습니다`,
+        timestamp: new Date().toISOString(),
+      });
 
       // 방 상태 초기화
       if (!this.roomStates.has(payload.roomCode)) {
@@ -416,8 +426,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // 보낸 사람 제외하고 방의 다른 사람들에게만 전송
       client.to(payload.roomCode).emit('messageReceived', {
         userId: user.id,
-        userEmail: user.email,
         userName: user.nickname,
+        profileImage: user.profileImage ?? null,
         message: payload.message,
         timestamp: new Date().toISOString(),
       });
