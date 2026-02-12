@@ -146,19 +146,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      // 이미 방에 속해있는지 확인
-      if (client.rooms.has(payload.roomCode)) {
-        return;
+      // 중복 입장 방지
+      const isAlreadyInRoom = client.rooms.has(payload.roomCode);
+
+      if (!isAlreadyInRoom) {
+        // 방에 입장
+        await client.join(payload.roomCode);
+
+        // 입장 메시지 (본인 제외한 다른 사람들에게만)
+        client.to(payload.roomCode).emit('systemMessage', {
+          message: `${user.nickname}님이 입장했습니다`,
+          timestamp: new Date().toISOString(),
+          userId: user.id,
+        });
+
+        client.to(payload.roomCode).emit('userJoined', {
+          userId: user.id,
+          userEmail: user.email,
+          userName: user.nickname,
+          clientId: client.id,
+          roomCode: payload.roomCode,
+        });
       }
-
-      // 방에 입장
-      await client.join(payload.roomCode);
-
-      // 입장 시스템 메시지 (한 번만 실행됨)
-      this.server.to(payload.roomCode).emit('systemMessage', {
-        message: `${user.nickname}님이 입장했습니다`,
-        timestamp: new Date().toISOString(),
-      });
 
       // 방 상태 초기화
       if (!this.roomStates.has(payload.roomCode)) {
@@ -173,14 +182,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           menus: initialMenus,
         });
       }
-
-      // 다른 사용자들에게 알림
-      client.to(payload.roomCode).emit('userJoined', {
-        userId: user.id,
-        userEmail: user.email,
-        clientId: client.id,
-        roomCode: payload.roomCode,
-      });
 
       // 호스트 관리: 방 상태에 hostId 저장
       const roomState = this.roomStates.get(payload.roomCode);
@@ -205,7 +206,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (roomState && !roomState.hostId && role === 'host') {
         roomState.hostId = user.id;
       }
-      // 클라이언트가 host로 재접속 요청해도 hostId와 user.id가 다르면 guest로 내려줌
+
+      // 역할 할당 이벤트 전송
       client.emit('roleAssigned', {
         role,
         roomCode: payload.roomCode,
@@ -216,60 +218,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch (error) {
       console.error('[Gateway] joinRoom 오류:', error);
       client.emit('joinError', { reason: 'JOIN_FAILED' });
-      try {
-        const user = client.user;
-        if (!user) return;
-        client.rooms.forEach((roomCode) => {
-          if (roomCode !== client.id) {
-            // 호스트가 나가면 방의 다른 유저 중 한 명을 호스트로 재할당
-            const roomState = this.roomStates.get(roomCode);
-            if (roomState && roomState.hostId === user.id) {
-              // 방에 남은 유저 중 한 명을 호스트로 지정
-              const room = this.server.sockets.adapter.rooms.get(roomCode);
-              if (room && room.size > 1) {
-                for (const socketId of room) {
-                  if (socketId !== client.id) {
-                    const nextSocket = this.server.sockets.sockets.get(socketId);
-                    if (nextSocket && (nextSocket as any).user) {
-                      roomState.hostId = user.id;
-                      // 새 호스트에게 roleAssigned emit
-                      (nextSocket as any).emit('roleAssigned', {
-                        role: 'host',
-                        roomCode,
-                        clientId: socketId,
-                        user: user,
-                        menus: roomState.menus || [],
-                      });
-                      break;
-                    }
-                  }
-                }
-              } else {
-                // 방에 아무도 없으면 hostId 제거
-                roomState.hostId = undefined;
-              }
-            }
-            client.to(roomCode).emit('userLeft', {
-              userId: user.id,
-              userEmail: user.email,
-              clientId: client.id,
-              roomCode: roomCode,
-            });
-          }
-        });
-      } catch (error) {
-        console.error('[Gateway] 연결 해제 오류:', error);
-      }
-
-      const roomState = this.roomStates.get(payload.roomCode) || {
-        activeTab: 'roulette',
-        isSpinning: false,
-        rotation: 0,
-        result: null,
-        startedBy: null,
-      };
-
-      client.emit('rouletteStateSync', { state: roomState });
     }
   }
 
@@ -406,10 +354,76 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         selectedFoodTypes: payload.selectedFoodTypes,
         selectedSituation: payload.selectedSituation,
         updatedBy: user.id,
+        timestamp: Date.now(), // 타임스탬프 추가
         menus: menuList, // 메뉴 목록 포함
       });
     } catch (error) {
       console.error('[Gateway] updateRouletteFilters 오류:', error);
+    }
+  }
+
+  // 방 퇴장
+  @SubscribeMessage('leaveRoom')
+  async handleLeaveRoom(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { roomCode: string },
+  ): Promise<void> {
+    try {
+      const user = client.user;
+      if (!user) return;
+
+      // 방에 속해있는지 확인
+      const isInRoom = client.rooms.has(payload.roomCode);
+      if (!isInRoom) {
+        return;
+      }
+
+      // 퇴장 메시지 (본인 제외한 다른 사람들에게만)
+      client.to(payload.roomCode).emit('systemMessage', {
+        message: `${user.nickname}님이 퇴장했습니다`,
+        timestamp: new Date().toISOString(),
+        userId: user.id,
+      });
+
+      client.to(payload.roomCode).emit('userLeft', {
+        userId: user.id,
+        userEmail: user.email,
+        userName: user.nickname,
+        clientId: client.id,
+        roomCode: payload.roomCode,
+      });
+
+      await client.leave(payload.roomCode);
+
+      // 방에 아무도 없으면 방 상태 정리
+      const roomSize = this.server.sockets.adapter.rooms.get(payload.roomCode)?.size || 0;
+      if (roomSize === 0) {
+        this.roomStates.delete(payload.roomCode);
+      } else {
+        // 호스트가 나간 경우 새로운 호스트 지정
+        const roomState = this.roomStates.get(payload.roomCode);
+        if (roomState && roomState.hostId === user.id) {
+          // 방에 남아있는 첫 번째 사용자를 새 호스트로
+          const roomSockets = await this.server.in(payload.roomCode).fetchSockets();
+          if (roomSockets.length > 0) {
+            const newHostSocket = roomSockets[0] as unknown as AuthenticatedSocket;
+            if (newHostSocket.user) {
+              roomState.hostId = newHostSocket.user.id;
+
+              // 새 호스트에게 알림
+              newHostSocket.emit('roleAssigned', {
+                role: 'host',
+                roomCode: payload.roomCode,
+                clientId: newHostSocket.id,
+                user: newHostSocket.user,
+                menus: roomState.menus || [],
+              });
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[Gateway] leaveRoom 오류:', error);
     }
   }
 
@@ -423,7 +437,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const user = client.user;
       if (!user) return;
 
-      // 보낸 사람 제외하고 방의 다른 사람들에게만 전송
+      // 같은 방의 모든 사용자에게 메시지 전송
       client.to(payload.roomCode).emit('messageReceived', {
         userId: user.id,
         userName: user.nickname,
